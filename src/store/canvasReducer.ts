@@ -2,6 +2,7 @@ import type { AppState, CanvasBlock, EmailHeader, PricingKey, PromoConfig } from
 
 export type CanvasAction =
   | { type: 'ADD_BLOCK'; block: CanvasBlock }
+  | { type: 'ADD_BLOCK_AT'; block: CanvasBlock; index: number }
   | { type: 'REMOVE_BLOCK'; instanceId: string }
   | { type: 'REORDER_BLOCKS'; orderedIds: string[] }
   | { type: 'TOGGLE_FEATURE'; instanceId: string; featureId: string }
@@ -27,6 +28,12 @@ export function canvasReducer(state: AppState, action: CanvasAction): AppState {
   switch (action.type) {
     case 'ADD_BLOCK':
       return { ...state, blocks: [...state.blocks, action.block] };
+
+    case 'ADD_BLOCK_AT': {
+      const blocks = [...state.blocks];
+      blocks.splice(action.index, 0, action.block);
+      return { ...state, blocks };
+    }
 
     case 'REMOVE_BLOCK':
       return { ...state, blocks: state.blocks.filter(b => b.instanceId !== action.instanceId) };
