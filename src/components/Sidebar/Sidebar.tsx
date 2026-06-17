@@ -1,6 +1,5 @@
 import type { Dispatch } from 'react';
-import { PLANS } from '../../data/plans';
-import { ADDONS } from '../../data/addons';
+import { useAdminData } from '../../contexts/AdminDataContext';
 import type { CanvasBlock } from '../../types';
 import { ALL_PRICING_KEYS } from '../../types';
 import type { CanvasAction } from '../../store/canvasReducer';
@@ -13,6 +12,8 @@ interface Props {
 }
 
 export function Sidebar({ dispatch }: Props) {
+  const { plans, addons } = useAdminData();
+
   function addBlock(block: CanvasBlock) {
     dispatch({ type: 'ADD_BLOCK', block });
   }

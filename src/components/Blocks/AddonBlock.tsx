@@ -1,6 +1,6 @@
 import { useState, type Dispatch } from 'react';
 import type { AddonBlock as AddonBlockType } from '../../types';
-import { ADDONS } from '../../data/addons';
+import { useAdminData } from '../../contexts/AdminDataContext';
 import type { CanvasAction } from '../../store/canvasReducer';
 import { PromoModal } from './PromoModal';
 import { FeatureBuckets } from './FeatureBuckets';
@@ -12,8 +12,9 @@ interface Props {
 }
 
 export function AddonBlock({ block, dispatch }: Props) {
+  const { addons } = useAdminData();
   const [showPromoModal, setShowPromoModal] = useState(false);
-  const def = ADDONS.find(a => a.id === block.definitionId);
+  const def = addons.find(a => a.id === block.definitionId);
   if (!def) return null;
 
   const promo = block.promo ?? null;

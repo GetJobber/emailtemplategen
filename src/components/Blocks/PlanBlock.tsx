@@ -1,7 +1,7 @@
 import { useState, type Dispatch } from 'react';
 import type { PlanBlock as PlanBlockType, PricingKey } from '../../types';
 import { ALL_PRICING_KEYS } from '../../types';
-import { PLANS } from '../../data/plans';
+import { useAdminData } from '../../contexts/AdminDataContext';
 import type { CanvasAction } from '../../store/canvasReducer';
 import { PromoModal, type PromoRow } from './PromoModal';
 import { FeatureBuckets } from './FeatureBuckets';
@@ -18,8 +18,9 @@ interface Props {
 }
 
 export function PlanBlock({ block, dispatch }: Props) {
+  const { plans } = useAdminData();
   const [showPromoModal, setShowPromoModal] = useState(false);
-  const def = PLANS.find(p => p.id === block.definitionId);
+  const def = plans.find(p => p.id === block.definitionId);
   if (!def) return null;
 
   const selectedTier = def.tiers.find(t => t.seats === block.selectedSeats) ?? def.tiers[0];

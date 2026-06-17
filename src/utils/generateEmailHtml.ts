@@ -1,7 +1,5 @@
-import type { AppState, CanvasBlock, PlanBlock, AddonBlock, TextBlock, CheckoutLinkBlock } from '../types';
+import type { AppState, CanvasBlock, PlanBlock, AddonBlock, TextBlock, CheckoutLinkBlock, PlanDefinition, AddonDefinition } from '../types';
 import { ALL_PRICING_KEYS } from '../types';
-import { PLANS } from '../data/plans';
-import { ADDONS } from '../data/addons';
 import {
   PRICING_LABELS,
   applyPromo,
@@ -87,8 +85,8 @@ function buildFeatureRows(
   return rows;
 }
 
-function renderPlanBlock(block: PlanBlock): string {
-  const def = PLANS.find(p => p.id === block.definitionId);
+function renderPlanBlock(block: PlanBlock, plans: PlanDefinition[]): string {
+  const def = plans.find(p => p.id === block.definitionId);
   if (!def) return '';
   const tier = def.tiers.find(t => t.seats === block.selectedSeats) ?? def.tiers[0];
   const featureRows = buildFeatureRows(def.features, block.visibleFeatureIds, block.keyFeatureIds ?? [], def.color);
@@ -174,8 +172,8 @@ function renderPlanBlock(block: PlanBlock): string {
 </div>`;
 }
 
-function renderAddonBlock(block: AddonBlock): string {
-  const def = ADDONS.find(a => a.id === block.definitionId);
+function renderAddonBlock(block: AddonBlock, addons: AddonDefinition[]): string {
+  const def = addons.find(a => a.id === block.definitionId);
   if (!def) return '';
   const featureRows = buildFeatureRows(def.features, block.visibleFeatureIds, block.keyFeatureIds ?? [], '#1F9839');
   const hasFeatures = featureRows.length > 0;
@@ -235,18 +233,18 @@ function renderCheckoutLinkBlock(block: CheckoutLinkBlock): string {
 </div>`;
 }
 
-function renderBlock(block: CanvasBlock): string {
+function renderBlock(block: CanvasBlock, plans: PlanDefinition[], addons: AddonDefinition[]): string {
   switch (block.kind) {
     case 'text': return renderTextBlock(block);
-    case 'plan': return renderPlanBlock(block);
-    case 'addon': return renderAddonBlock(block);
+    case 'plan': return renderPlanBlock(block, plans);
+    case 'addon': return renderAddonBlock(block, addons);
     case 'signature': return renderSignatureBlock();
     case 'checkout': return renderCheckoutLinkBlock(block);
   }
 }
 
-export function generateEmailHtml(state: AppState): string {
-  const body = state.blocks.map(renderBlock).join('\n');
+export function generateEmailHtml(state: AppState, plans: PlanDefinition[], addons: AddonDefinition[]): string {
+  const body = state.blocks.map(b => renderBlock(b, plans, addons)).join('\n');
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"></head>
@@ -258,14 +256,14 @@ export function generateEmailHtml(state: AppState): string {
 </html>`;
 }
 
-export function generateEmailText(state: AppState): string {
+export function generateEmailText(state: AppState, plans: PlanDefinition[], addons: AddonDefinition[]): string {
   return state.blocks.map(block => {
     switch (block.kind) {
       case 'text':
         // Convert [text](url) links to "text (url)" for plain text
         return block.content.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1 ($2)');
       case 'plan': {
-        const def = PLANS.find(p => p.id === block.definitionId);
+        const def = plans.find(p => p.id === block.definitionId);
         if (!def) return '';
         const tier = def.tiers.find(t => t.seats === block.selectedSeats) ?? def.tiers[0];
         const visiblePricingKeys = block.visiblePricingKeys ?? ALL_PRICING_KEYS;
@@ -309,7 +307,7 @@ export function generateEmailText(state: AppState): string {
         ].filter(Boolean).join('\n');
       }
       case 'addon': {
-        const def = ADDONS.find(a => a.id === block.definitionId);
+        const def = addons.find(a => a.id === block.definitionId);
         if (!def) return '';
         const addonKeyIds = block.keyFeatureIds ?? [];
         const addonKeyText = def.features

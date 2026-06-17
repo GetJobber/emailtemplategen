@@ -2,13 +2,16 @@ import { useState } from 'react';
 import type { AppState } from '../../types';
 import { generateEmailHtml, generateEmailText } from '../../utils/generateEmailHtml';
 import { copyToClipboard, copyRichTextToClipboard } from '../../utils/clipboard';
+import { useAdminData } from '../../contexts/AdminDataContext';
 import { PreviewModal } from './PreviewModal';
 
 interface Props {
   state: AppState;
+  onOpenAdmin: () => void;
 }
 
-export function Toolbar({ state }: Props) {
+export function Toolbar({ state, onOpenAdmin }: Props) {
+  const { plans, addons } = useAdminData();
   const [copied, setCopied] = useState(false);
   const [copiedRich, setCopiedRich] = useState(false);
   const [previewing, setPreviewing] = useState(false);
@@ -16,15 +19,15 @@ export function Toolbar({ state }: Props) {
   const hasBlocks = state.blocks.length > 0;
 
   async function handleCopy() {
-    const html = generateEmailHtml(state);
+    const html = generateEmailHtml(state, plans, addons);
     await copyToClipboard(html);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
 
   async function handleCopyRich() {
-    const html = generateEmailHtml(state);
-    const plain = generateEmailText(state);
+    const html = generateEmailHtml(state, plans, addons);
+    const plain = generateEmailText(state, plans, addons);
     await copyRichTextToClipboard(html, plain);
     setCopiedRich(true);
     setTimeout(() => setCopiedRich(false), 2000);
@@ -47,6 +50,13 @@ export function Toolbar({ state }: Props) {
           <span className="text-xs text-gray-400">
             {state.blocks.length} block{state.blocks.length !== 1 ? 's' : ''}
           </span>
+
+          <button
+            onClick={onOpenAdmin}
+            className="px-4 py-2 rounded-lg text-sm font-semibold border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 active:scale-95 transition-all"
+          >
+            Admin
+          </button>
 
           <button
             onClick={() => setPreviewing(true)}
@@ -92,7 +102,7 @@ export function Toolbar({ state }: Props) {
 
       {previewing && (
         <PreviewModal
-          html={generateEmailHtml(state)}
+          html={generateEmailHtml(state, plans, addons)}
           onClose={() => setPreviewing(false)}
         />
       )}

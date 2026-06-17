@@ -11,13 +11,18 @@ import {
 import type { DragStartEvent, DragOverEvent, DragEndEvent } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates, arrayMove } from '@dnd-kit/sortable';
 import { canvasReducer, initialState } from './store/canvasReducer';
+import { useAdminStore } from './store/adminStore';
+import { AdminDataContext } from './contexts/AdminDataContext';
 import type { CanvasBlock } from './types';
 import { Sidebar } from './components/Sidebar/Sidebar';
 import { Canvas } from './components/Canvas/Canvas';
 import { Toolbar } from './components/Toolbar/Toolbar';
+import { AdminModal } from './components/Admin/AdminModal';
 
 export default function App() {
   const [state, dispatch] = useReducer(canvasReducer, initialState);
+  const { adminState, adminDispatch } = useAdminStore();
+  const [showAdmin, setShowAdmin] = useState(false);
   const [insertIndex, setInsertIndex] = useState<number | null>(null);
   const [dragLabel, setDragLabel] = useState<string | null>(null);
   const draggedFactoryRef = useRef<(() => CanvasBlock) | null>(null);
@@ -83,32 +88,36 @@ export default function App() {
   }
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
-      onDragOver={handleDragOver}
-      onDragEnd={handleDragEnd}
-    >
-      <div className="flex h-screen overflow-hidden bg-gray-50">
-        <Sidebar dispatch={dispatch} />
-        <div className="flex flex-col flex-1 overflow-hidden">
-          <Toolbar state={state} />
-          <Canvas
-            state={state}
-            dispatch={dispatch}
-            insertIndex={insertIndex}
-            isSidebarDrag={draggedFactoryRef.current !== null}
-          />
-        </div>
-      </div>
-      <DragOverlay>
-        {dragLabel ? (
-          <div className="bg-white border-2 border-green-400 shadow-xl rounded-lg px-4 py-2.5 text-sm font-semibold text-green-700 opacity-95 cursor-grabbing">
-            + {dragLabel}
+    <AdminDataContext.Provider value={{ plans: adminState.plans, addons: adminState.addons, adminDispatch }}>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="flex h-screen overflow-hidden bg-gray-50">
+          <Sidebar dispatch={dispatch} />
+          <div className="flex flex-col flex-1 overflow-hidden">
+            <Toolbar state={state} onOpenAdmin={() => setShowAdmin(true)} />
+            <Canvas
+              state={state}
+              dispatch={dispatch}
+              insertIndex={insertIndex}
+              isSidebarDrag={draggedFactoryRef.current !== null}
+            />
           </div>
-        ) : null}
-      </DragOverlay>
-    </DndContext>
+        </div>
+        <DragOverlay>
+          {dragLabel ? (
+            <div className="bg-white border-2 border-green-400 shadow-xl rounded-lg px-4 py-2.5 text-sm font-semibold text-green-700 opacity-95 cursor-grabbing">
+              + {dragLabel}
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
+
+      {showAdmin && <AdminModal onClose={() => setShowAdmin(false)} />}
+    </AdminDataContext.Provider>
   );
 }
