@@ -5,6 +5,7 @@ export type CanvasAction =
   | { type: 'REMOVE_BLOCK'; instanceId: string }
   | { type: 'REORDER_BLOCKS'; orderedIds: string[] }
   | { type: 'TOGGLE_FEATURE'; instanceId: string; featureId: string }
+  | { type: 'SET_PLAN_SEATS'; instanceId: string; seats: number }
   | { type: 'UPDATE_TEXT'; instanceId: string; content: string }
   | { type: 'SET_HEADER'; field: keyof EmailHeader; value: string };
 
@@ -41,6 +42,17 @@ export function canvasReducer(state: AppState, action: CanvasAction): AppState {
               : [...b.visibleFeatureIds, action.featureId],
           };
         }),
+      };
+    }
+
+    case 'SET_PLAN_SEATS': {
+      return {
+        ...state,
+        blocks: state.blocks.map(b =>
+          b.instanceId === action.instanceId && b.kind === 'plan'
+            ? { ...b, selectedSeats: action.seats }
+            : b
+        ),
       };
     }
 

@@ -18,9 +18,25 @@ function renderTextBlock(block: TextBlock): string {
 function renderPlanBlock(block: PlanBlock): string {
   const def = PLANS.find(p => p.id === block.definitionId);
   if (!def) return '';
+  const tier = def.tiers.find(t => t.seats === block.selectedSeats) ?? def.tiers[0];
   const visibleFeatures = def.features.filter(f => block.visibleFeatureIds.includes(f.id));
   const featureRows = visibleFeatures
     .map(f => `<tr><td style="padding: 4px 0; padding-left: 8px;">✓ ${f.label}</td></tr>`)
+    .join('');
+
+  const seatLabel = `${tier.seats} ${tier.seats === 1 ? 'user seat' : 'user seats'}`;
+
+  const pricingRows = [
+    { label: 'Monthly, no commitment', value: tier.monthlyNoCommitment },
+    { label: 'Monthly, 1-year commitment', value: tier.monthlyAnnual },
+    { label: 'Annual, paid upfront (per mo)', value: tier.annualMonthly },
+    { label: 'Annual, paid upfront (total)', value: tier.annualTotal },
+  ]
+    .map(row => `
+    <tr>
+      <td style="padding: 4px 0; color: #555; font-size: 13px;">${row.label}</td>
+      <td style="padding: 4px 0; text-align: right; font-weight: bold; color: ${def.color}; font-size: 13px;">${row.value}</td>
+    </tr>`)
     .join('');
 
   return `
@@ -33,9 +49,16 @@ function renderPlanBlock(block: PlanBlock): string {
       </td>
     </tr>
     <tr>
-      <td style="padding: 12px 16px; background-color: #f9f9f9;">
-        <strong style="font-size: 20px; color: ${def.color};">${def.monthlyPrice}</strong>
-        <span style="color: #666; font-size: 12px; margin-left: 8px;">${def.annualPrice}</span>
+      <td style="padding: 10px 16px; background-color: #f9f9f9; border-bottom: 1px solid ${def.color}22;">
+        <strong style="font-size: 13px; color: #555;">Included user seats: </strong>
+        <span style="font-size: 13px; color: ${def.color}; font-weight: bold;">${seatLabel}</span>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 10px 16px; background-color: #f9f9f9;">
+        <table cellpadding="0" cellspacing="0" border="0" width="100%">
+          ${pricingRows}
+        </table>
       </td>
     </tr>
     ${visibleFeatures.length > 0 ? `
@@ -115,11 +138,19 @@ export function generateEmailText(state: AppState): string {
       case 'plan': {
         const def = PLANS.find(p => p.id === block.definitionId);
         if (!def) return '';
+        const tier = def.tiers.find(t => t.seats === block.selectedSeats) ?? def.tiers[0];
         const features = def.features
           .filter(f => block.visibleFeatureIds.includes(f.id))
           .map(f => `  ✓ ${f.label}`)
           .join('\n');
-        return `${def.title} — ${def.monthlyPrice}\n${def.tagline}\n${features}`;
+        return [
+          `${def.title} (${tier.seats} ${tier.seats === 1 ? 'user' : 'users'}) — ${def.tagline}`,
+          `  Monthly, no commitment: ${tier.monthlyNoCommitment}`,
+          `  Monthly, 1-year commitment: ${tier.monthlyAnnual}`,
+          `  Annual, paid upfront (per mo): ${tier.annualMonthly}`,
+          `  Annual, paid upfront (total): ${tier.annualTotal}`,
+          features,
+        ].filter(Boolean).join('\n');
       }
       case 'addon': {
         const def = ADDONS.find(a => a.id === block.definitionId);

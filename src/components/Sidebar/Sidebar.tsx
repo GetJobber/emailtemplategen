@@ -30,12 +30,13 @@ export function Sidebar({ dispatch }: Props) {
               key={plan.id}
               label={plan.title}
               description={plan.tagline}
-              price={plan.monthlyPrice}
+              price={plan.tiers[0].monthlyNoCommitment}
               color={plan.color}
               onAdd={() => addBlock({
                 instanceId: generateId(),
                 kind: 'plan',
                 definitionId: plan.id,
+                selectedSeats: plan.tiers[0].seats,
                 visibleFeatureIds: plan.features.map(f => f.id),
               })}
             />
