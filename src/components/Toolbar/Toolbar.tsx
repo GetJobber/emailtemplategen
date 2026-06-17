@@ -30,16 +30,6 @@ export function Toolbar({ state }: Props) {
     setTimeout(() => setCopiedRich(false), 2000);
   }
 
-  function handleOpenInBrowser() {
-    const html = generateEmailHtml(state);
-    const tab = window.open('', '_blank');
-    if (tab) {
-      tab.document.open();
-      tab.document.write(html);
-      tab.document.close();
-    }
-  }
-
   return (
     <>
       <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between flex-shrink-0">
@@ -82,18 +72,6 @@ export function Toolbar({ state }: Props) {
             }`}
           >
             {copiedRich ? '✓ Copied!' : 'Copy Rich Text'}
-          </button>
-
-          <button
-            onClick={handleOpenInBrowser}
-            disabled={!hasBlocks}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold border transition-all ${
-              !hasBlocks
-                ? 'border-gray-200 text-gray-300 cursor-not-allowed bg-white'
-                : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50 active:scale-95'
-            }`}
-          >
-            Open Built Email in Browser Tab
           </button>
 
           <button
