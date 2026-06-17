@@ -3,12 +3,19 @@ export interface PlanFeature {
   label: string;
 }
 
+export interface PriceTier {
+  seats: number;
+  monthlyNoCommitment: string;
+  monthlyAnnual: string;
+  annualMonthly: string;
+  annualTotal: string;
+}
+
 export interface PlanDefinition {
   id: string;
   title: string;
   tagline: string;
-  monthlyPrice: string;
-  annualPrice: string;
+  tiers: PriceTier[];
   color: string;
   features: PlanFeature[];
 }
@@ -31,6 +38,7 @@ interface BaseBlock {
 export interface PlanBlock extends BaseBlock {
   kind: 'plan';
   definitionId: string;
+  selectedSeats: number;
   visibleFeatureIds: string[];
 }
 
