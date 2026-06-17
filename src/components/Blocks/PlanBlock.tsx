@@ -8,7 +8,6 @@ import {
   PRICING_LABELS,
   applyPromo,
   formatCurrency,
-  buildPromoSentence,
 } from '../../utils/priceUtils';
 
 interface Props {
@@ -141,16 +140,6 @@ export function PlanBlock({ block, dispatch }: Props) {
               })}
             </div>
 
-            {/* Promo summary sentences */}
-            {hasAnyPromo && (
-              <div className="mt-3 space-y-1.5">
-                {ALL_PRICING_KEYS.filter(k => promotions[k] && visiblePricingKeys.includes(k)).map(key => (
-                  <p key={key} className="text-xs text-amber-700 bg-amber-50 rounded px-2 py-1.5 leading-relaxed">
-                    {buildPromoSentence(key, def.title, selectedTier[key], promotions[key]!)}
-                  </p>
-                ))}
-              </div>
-            )}
           </div>
 
           {/* Feature toggles */}

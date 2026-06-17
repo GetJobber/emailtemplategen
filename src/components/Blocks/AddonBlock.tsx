@@ -3,7 +3,7 @@ import type { AddonBlock as AddonBlockType } from '../../types';
 import { ADDONS } from '../../data/addons';
 import type { CanvasAction } from '../../store/canvasReducer';
 import { PromoModal } from './PromoModal';
-import { applyPromo, formatCurrency, buildAddonPromoSentence } from '../../utils/priceUtils';
+import { applyPromo, formatCurrency } from '../../utils/priceUtils';
 
 interface Props {
   block: AddonBlockType;
@@ -55,15 +55,6 @@ export function AddonBlock({ block, dispatch }: Props) {
               </button>
             </div>
           </div>
-
-          {/* Promo sentence */}
-          {promo && (
-            <div className="px-4 py-2 bg-amber-50 border-t border-amber-100">
-              <p className="text-xs text-amber-700 leading-relaxed">
-                {buildAddonPromoSentence(def.name, def.price, promo)}
-              </p>
-            </div>
-          )}
 
           <div className="px-4 pt-2 pb-1 text-sm text-gray-600">{def.description}</div>
           <div className="px-4 py-3">

@@ -6,8 +6,6 @@ import {
   PRICING_LABELS,
   applyPromo,
   formatCurrency,
-  buildPromoSentence,
-  buildAddonPromoSentence,
 } from './priceUtils';
 
 const OUTER_STYLE = 'font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #333333; line-height: 1.6;';
@@ -73,22 +71,6 @@ function renderPlanBlock(block: PlanBlock): string {
     })
     .join('');
 
-  // Promo sentences for visible keys that have a promo
-  const promoSentences = ALL_PRICING_KEYS
-    .filter(key => visiblePricingKeys.includes(key) && promotions[key])
-    .map(key => buildPromoSentence(key, def.title, tier[key], promotions[key]!));
-
-  const promoBlock = promoSentences.length > 0
-    ? `
-    <tr>
-      <td style="padding: 10px 16px; background-color: #fffbeb; border-top: 1px solid #fde68a;">
-        ${promoSentences.map(s =>
-          `<p style="margin: 0 0 6px; font-size: 12px; color: #92400e;">${s}</p>`
-        ).join('')}
-      </td>
-    </tr>`
-    : '';
-
   return `
 <div style="${SECTION_STYLE}">
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border: 1px solid ${def.color}; border-radius: 6px; overflow: hidden;">
@@ -111,7 +93,6 @@ function renderPlanBlock(block: PlanBlock): string {
         </table>
       </td>
     </tr>
-    ${promoBlock}
     ${visibleFeatures.length > 0 ? `
     <tr>
       <td style="padding: 12px 16px;">
@@ -139,12 +120,6 @@ function renderAddonBlock(block: AddonBlock): string {
     ? `<span style="text-decoration: line-through; color: #aaa; margin-right: 6px;">${def.price}</span><strong style="color: #b45309;">${formatCurrency(discounted)}/mo</strong>`
     : `<strong style="color: #1F9839;">${def.price}</strong>`;
 
-  const promoSentence = promo
-    ? `<tr><td style="padding: 6px 14px; background-color: #fffbeb; border-top: 1px solid #fde68a;">
-        <p style="margin:0; font-size: 12px; color: #92400e;">${buildAddonPromoSentence(def.name, def.price, promo)}</p>
-       </td></tr>`
-    : '';
-
   return `
 <div style="${SECTION_STYLE}">
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border: 1px solid #e5e7eb; border-left: 4px solid #1F9839; border-radius: 4px;">
@@ -157,7 +132,6 @@ function renderAddonBlock(block: AddonBlock): string {
     <tr>
       <td style="padding: 6px 14px 2px; color: #555; font-size: 13px;">${def.description}</td>
     </tr>
-    ${promoSentence}
     ${visibleFeatures.length > 0 ? `
     <tr>
       <td style="padding: 8px 14px 12px;">
@@ -229,7 +203,11 @@ export function generateEmailText(state: AppState): string {
           .filter(key => visiblePricingKeys.includes(key))
           .map(key => {
             const promo = promotions[key];
-            if (promo) return `  ${buildPromoSentence(key, def.title, tier[key], promo)}`;
+            if (promo) {
+              const discounted = applyPromo(tier[key], promo);
+              const unit = tier[key].includes('/yr') ? '/yr' : '/mo';
+              return `  ${PRICING_LABELS[key]}: ${formatCurrency(discounted)}${unit} (${promo.durationMonths} mo, then ${tier[key]})`;
+            }
             return `  ${PRICING_LABELS[key]}: ${tier[key]}`;
           })
           .join('\n');
@@ -248,7 +226,7 @@ export function generateEmailText(state: AppState): string {
           .join('\n');
         const promo = block.promo ?? null;
         const priceLine = promo
-          ? buildAddonPromoSentence(def.name, def.price, promo)
+          ? `${def.name} — ${formatCurrency(applyPromo(def.price, promo))}/mo (${promo.durationMonths} mo, then ${def.price})`
           : `${def.name} — ${def.price}`;
         return `${priceLine}\n${def.description}\n${features}`;
       }
