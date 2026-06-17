@@ -420,7 +420,7 @@ function PlanEditor({ plan, dispatch }: PlanEditorProps) {
           />
           <button
             onClick={() => { captureTaglineSel(); setShowTaglineLinkForm(true); }}
-            className="flex-shrink-0 text-white/40 hover:text-white/70 transition-colors"
+            className="flex-shrink-0 text-gray-400 hover:text-green-600 transition-colors"
             title="Insert link into tagline"
           >
             <LinkIcon />
