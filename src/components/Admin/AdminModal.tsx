@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -24,6 +24,93 @@ interface Props {
   onClose: () => void;
 }
 
+// ─── Small shared helpers ─────────────────────────────────────────────────────
+
+function LinkIcon() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+      <path d="M5 7a3 3 0 0 0 4.24 0l1.5-1.5a3 3 0 0 0-4.24-4.24L5.88 2.38" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+      <path d="M7 5a3 3 0 0 0-4.24 0L1.26 6.5a3 3 0 0 0 4.24 4.24L6.12 9.62" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+/** Renders [text](url) as a blue link in JSX, for non-editing display in the admin modal. */
+function RichLabel({ text }: { text: string }) {
+  if (!text.includes('[')) return <>{text}</>;
+  const LINK_RE = /\[([^\]]+)\]\(([^)]+)\)/g;
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  LINK_RE.lastIndex = 0;
+  while ((match = LINK_RE.exec(text)) !== null) {
+    if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index));
+    parts.push(
+      <a key={match.index} href={match[2]} target="_blank" rel="noreferrer" className="text-blue-500 underline hover:text-blue-700">
+        {match[1]}
+      </a>
+    );
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < text.length) parts.push(text.slice(lastIndex));
+  return <>{parts}</>;
+}
+
+interface InsertLinkInlineProps {
+  onInsert: (text: string, url: string) => void;
+  onClose: () => void;
+  defaultText?: string;
+}
+
+/** Compact form to build a [text](url) string. */
+function InsertLinkInline({ onInsert, onClose, defaultText = '' }: InsertLinkInlineProps) {
+  const [text, setText] = useState(defaultText);
+  const [url, setUrl] = useState('');
+
+  function commit() {
+    const t = text.trim();
+    const rawUrl = url.trim();
+    if (!t || !rawUrl) return;
+    const finalUrl = /^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`;
+    onInsert(t, finalUrl);
+  }
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg p-2.5 shadow-sm space-y-1.5">
+      <p className="text-xs font-semibold text-gray-600 flex items-center gap-1.5"><LinkIcon /> Insert Link</p>
+      <input
+        // eslint-disable-next-line jsx-a11y/no-autofocus
+        autoFocus
+        type="text"
+        value={text}
+        onChange={e => setText(e.target.value)}
+        placeholder="Display text"
+        className="w-full text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-green-400"
+      />
+      <input
+        type="url"
+        value={url}
+        onChange={e => setUrl(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') onClose(); }}
+        placeholder="https://getjobber.com/..."
+        className="w-full text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-green-400"
+      />
+      <div className="flex gap-1.5">
+        <button
+          onClick={commit}
+          disabled={!text.trim() || !url.trim()}
+          className="px-2.5 py-1 text-xs font-semibold bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        >
+          Insert
+        </button>
+        <button onClick={onClose} className="px-2.5 py-1 text-xs text-gray-500 hover:text-gray-700 rounded-md hover:bg-gray-100 transition-colors">
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Sortable feature row (plans) ─────────────────────────────────────────────
 
 interface SortableFeatureProps {
@@ -35,6 +122,10 @@ interface SortableFeatureProps {
 function SortableFeatureRow({ planId, feature, dispatch }: SortableFeatureProps) {
   const [label, setLabel] = useState(feature.label);
   const [editing, setEditing] = useState(false);
+  const [showLinkForm, setShowLinkForm] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const savedSelRef = useRef({ start: 0, end: 0 });
+  const linkFormOpenRef = useRef(false);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: `feat:${planId}:${feature.id}`,
@@ -47,63 +138,117 @@ function SortableFeatureRow({ planId, feature, dispatch }: SortableFeatureProps)
     opacity: isDragging ? 0.3 : undefined,
   };
 
+  function commitEdit() {
+    if (linkFormOpenRef.current) return;
+    setEditing(false);
+    if (label.trim()) {
+      dispatch({ type: 'UPDATE_PLAN_FEATURE', planId, featureId: feature.id, label: label.trim() });
+    } else {
+      setLabel(feature.label);
+    }
+  }
+
+  function openLinkForm() {
+    if (!editing) {
+      setLabel(feature.label);
+      setEditing(true);
+      savedSelRef.current = { start: feature.label.length, end: feature.label.length };
+    } else {
+      const el = inputRef.current;
+      savedSelRef.current = {
+        start: el?.selectionStart ?? label.length,
+        end: el?.selectionEnd ?? label.length,
+      };
+    }
+    linkFormOpenRef.current = true;
+    setShowLinkForm(true);
+  }
+
+  function handleInsertLink(text: string, url: string) {
+    const insertion = `[${text}](${url})`;
+    const { start, end } = savedSelRef.current;
+    const newLabel = label.slice(0, start) + insertion + label.slice(end);
+    setLabel(newLabel);
+    dispatch({ type: 'UPDATE_PLAN_FEATURE', planId, featureId: feature.id, label: newLabel.trim() });
+    linkFormOpenRef.current = false;
+    setShowLinkForm(false);
+    setEditing(false);
+  }
+
+  function handleCancelLink() {
+    linkFormOpenRef.current = false;
+    setShowLinkForm(false);
+    setTimeout(() => inputRef.current?.focus(), 0);
+  }
+
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="flex items-start gap-1.5 group rounded px-1 py-0.5 hover:bg-gray-50"
-    >
-      <button
-        {...attributes}
-        {...listeners}
-        className="mt-0.5 cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 flex-shrink-0 touch-none"
-        title="Drag to reorder or move to another plan"
-      >
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-          <circle cx="3.5" cy="2.5" r="1.2"/><circle cx="3.5" cy="6" r="1.2"/><circle cx="3.5" cy="9.5" r="1.2"/>
-          <circle cx="8.5" cy="2.5" r="1.2"/><circle cx="8.5" cy="6" r="1.2"/><circle cx="8.5" cy="9.5" r="1.2"/>
-        </svg>
-      </button>
-
-      {editing ? (
-        <input
-          // eslint-disable-next-line jsx-a11y/no-autofocus
-          autoFocus
-          value={label}
-          onChange={e => setLabel(e.target.value)}
-          onBlur={() => {
-            if (label.trim()) {
-              dispatch({ type: 'UPDATE_PLAN_FEATURE', planId, featureId: feature.id, label: label.trim() });
-            } else {
-              setLabel(feature.label);
-            }
-            setEditing(false);
-          }}
-          onKeyDown={e => {
-            if (e.key === 'Enter') e.currentTarget.blur();
-            if (e.key === 'Escape') { setLabel(feature.label); setEditing(false); }
-          }}
-          className="flex-1 text-xs border-b border-green-400 outline-none py-0.5 bg-transparent"
-        />
-      ) : (
-        <span
-          onClick={() => { setLabel(feature.label); setEditing(true); }}
-          className="flex-1 text-xs text-gray-700 cursor-text leading-relaxed"
-          title="Click to edit"
+    <div ref={setNodeRef} style={style}>
+      <div className="flex items-start gap-1.5 group rounded px-1 py-0.5 hover:bg-gray-50">
+        <button
+          {...attributes}
+          {...listeners}
+          className="mt-0.5 cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 flex-shrink-0 touch-none"
+          title="Drag to reorder or move to another plan"
         >
-          {feature.label}
-        </span>
-      )}
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+            <circle cx="3.5" cy="2.5" r="1.2"/><circle cx="3.5" cy="6" r="1.2"/><circle cx="3.5" cy="9.5" r="1.2"/>
+            <circle cx="8.5" cy="2.5" r="1.2"/><circle cx="8.5" cy="6" r="1.2"/><circle cx="8.5" cy="9.5" r="1.2"/>
+          </svg>
+        </button>
 
-      <button
-        onClick={() => dispatch({ type: 'DELETE_PLAN_FEATURE', planId, featureId: feature.id })}
-        className="mt-0.5 text-red-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-        title="Delete feature"
-      >
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-          <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-        </svg>
-      </button>
+        <div className="flex-1 min-w-0">
+          {editing ? (
+            <input
+              ref={inputRef}
+              // eslint-disable-next-line jsx-a11y/no-autofocus
+              autoFocus
+              value={label}
+              onChange={e => setLabel(e.target.value)}
+              onBlur={commitEdit}
+              onKeyDown={e => {
+                if (e.key === 'Enter') { linkFormOpenRef.current = false; commitEdit(); }
+                if (e.key === 'Escape') { setLabel(feature.label); setEditing(false); setShowLinkForm(false); linkFormOpenRef.current = false; }
+              }}
+              className="w-full text-xs border-b border-green-400 outline-none py-0.5 bg-transparent"
+            />
+          ) : (
+            <span
+              onClick={() => { setLabel(feature.label); setEditing(true); }}
+              className="block text-xs text-gray-700 cursor-text leading-relaxed"
+              title="Click to edit"
+            >
+              <RichLabel text={feature.label} />
+            </span>
+          )}
+        </div>
+
+        {/* Link button */}
+        <button
+          onMouseDown={editing ? (e => e.preventDefault()) : undefined}
+          onClick={openLinkForm}
+          className="mt-0.5 text-gray-300 hover:text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+          title="Insert link"
+        >
+          <LinkIcon />
+        </button>
+
+        {/* Delete button */}
+        <button
+          onClick={() => dispatch({ type: 'DELETE_PLAN_FEATURE', planId, featureId: feature.id })}
+          className="mt-0.5 text-red-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+          title="Delete feature"
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+        </button>
+      </div>
+
+      {showLinkForm && (
+        <div className="px-1 pb-1.5">
+          <InsertLinkInline onInsert={handleInsertLink} onClose={handleCancelLink} />
+        </div>
+      )}
     </div>
   );
 }
@@ -217,11 +362,30 @@ interface PlanEditorProps {
 function PlanEditor({ plan, dispatch }: PlanEditorProps) {
   const { setNodeRef, isOver } = useDroppable({ id: `planzone:${plan.id}` });
   const [tiersExpanded, setTiersExpanded] = useState(false);
+  const [showTaglineLinkForm, setShowTaglineLinkForm] = useState(false);
+  const taglineRef = useRef<HTMLInputElement>(null);
+  const taglineSelRef = useRef({ start: 0, end: 0 });
 
   function handleDeletePlan() {
     if (window.confirm(`Delete the "${plan.title}" plan? Any canvas blocks using this plan will become empty.`)) {
       dispatch({ type: 'DELETE_PLAN', planId: plan.id });
     }
+  }
+
+  function captureTaglineSel() {
+    const el = taglineRef.current;
+    if (el) taglineSelRef.current = { start: el.selectionStart ?? plan.tagline.length, end: el.selectionEnd ?? plan.tagline.length };
+  }
+
+  function handleTaglineLinkInsert(text: string, url: string) {
+    const insertion = `[${text}](${url})`;
+    // If cursor never explicitly placed, append to end
+    const sel = taglineSelRef.current.start === 0 && taglineSelRef.current.end === 0
+      ? { start: plan.tagline.length, end: plan.tagline.length }
+      : taglineSelRef.current;
+    const newTagline = plan.tagline.slice(0, sel.start) + insertion + plan.tagline.slice(sel.end);
+    dispatch({ type: 'UPDATE_PLAN_META', planId: plan.id, field: 'tagline', value: newTagline });
+    setShowTaglineLinkForm(false);
   }
 
   return (
@@ -244,13 +408,32 @@ function PlanEditor({ plan, dispatch }: PlanEditorProps) {
             Delete plan
           </button>
         </div>
-        <input
-          value={plan.tagline}
-          onChange={e => dispatch({ type: 'UPDATE_PLAN_META', planId: plan.id, field: 'tagline', value: e.target.value })}
-          className="text-xs text-gray-500 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-gray-500 outline-none w-full"
-          placeholder="Plan tagline…"
-        />
+        <div className="flex items-center gap-1">
+          <input
+            ref={taglineRef}
+            value={plan.tagline}
+            onChange={e => dispatch({ type: 'UPDATE_PLAN_META', planId: plan.id, field: 'tagline', value: e.target.value })}
+            onSelect={captureTaglineSel}
+            onKeyUp={captureTaglineSel}
+            className="flex-1 text-xs text-gray-500 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-gray-500 outline-none"
+            placeholder="Plan tagline…"
+          />
+          <button
+            onClick={() => { captureTaglineSel(); setShowTaglineLinkForm(true); }}
+            className="flex-shrink-0 text-white/40 hover:text-white/70 transition-colors"
+            title="Insert link into tagline"
+          >
+            <LinkIcon />
+          </button>
+        </div>
       </div>
+
+      {/* Tagline link insert form */}
+      {showTaglineLinkForm && (
+        <div className="px-4 py-2 border-b border-gray-100">
+          <InsertLinkInline onInsert={handleTaglineLinkInsert} onClose={() => setShowTaglineLinkForm(false)} />
+        </div>
+      )}
 
       {/* Pricing tiers — collapsible */}
       <div className="border-b border-gray-100">
@@ -414,6 +597,10 @@ interface SortableAddonFeatureProps {
 function SortableAddonFeatureRow({ addonId, feature, dispatch }: SortableAddonFeatureProps) {
   const [label, setLabel] = useState(feature.label);
   const [editing, setEditing] = useState(false);
+  const [showLinkForm, setShowLinkForm] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const savedSelRef = useRef({ start: 0, end: 0 });
+  const linkFormOpenRef = useRef(false);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: `addonfeat:${addonId}:${feature.id}`,
@@ -426,60 +613,116 @@ function SortableAddonFeatureRow({ addonId, feature, dispatch }: SortableAddonFe
     opacity: isDragging ? 0.3 : undefined,
   };
 
+  function commitEdit() {
+    if (linkFormOpenRef.current) return;
+    setEditing(false);
+    if (label.trim()) {
+      dispatch({ type: 'UPDATE_ADDON_FEATURE', addonId, featureId: feature.id, label: label.trim() });
+    } else {
+      setLabel(feature.label);
+    }
+  }
+
+  function openLinkForm() {
+    if (!editing) {
+      setLabel(feature.label);
+      setEditing(true);
+      savedSelRef.current = { start: feature.label.length, end: feature.label.length };
+    } else {
+      const el = inputRef.current;
+      savedSelRef.current = {
+        start: el?.selectionStart ?? label.length,
+        end: el?.selectionEnd ?? label.length,
+      };
+    }
+    linkFormOpenRef.current = true;
+    setShowLinkForm(true);
+  }
+
+  function handleInsertLink(text: string, url: string) {
+    const insertion = `[${text}](${url})`;
+    const { start, end } = savedSelRef.current;
+    const newLabel = label.slice(0, start) + insertion + label.slice(end);
+    setLabel(newLabel);
+    dispatch({ type: 'UPDATE_ADDON_FEATURE', addonId, featureId: feature.id, label: newLabel.trim() });
+    linkFormOpenRef.current = false;
+    setShowLinkForm(false);
+    setEditing(false);
+  }
+
+  function handleCancelLink() {
+    linkFormOpenRef.current = false;
+    setShowLinkForm(false);
+    setTimeout(() => inputRef.current?.focus(), 0);
+  }
+
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="flex items-start gap-1.5 group rounded px-1 py-0.5 hover:bg-gray-50"
-    >
-      <button
-        {...attributes}
-        {...listeners}
-        className="mt-0.5 cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 flex-shrink-0 touch-none"
-        title="Drag to reorder"
-      >
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-          <circle cx="3.5" cy="2.5" r="1.2"/><circle cx="3.5" cy="6" r="1.2"/><circle cx="3.5" cy="9.5" r="1.2"/>
-          <circle cx="8.5" cy="2.5" r="1.2"/><circle cx="8.5" cy="6" r="1.2"/><circle cx="8.5" cy="9.5" r="1.2"/>
-        </svg>
-      </button>
-      {editing ? (
-        <input
-          // eslint-disable-next-line jsx-a11y/no-autofocus
-          autoFocus
-          value={label}
-          onChange={e => setLabel(e.target.value)}
-          onBlur={() => {
-            if (label.trim()) {
-              dispatch({ type: 'UPDATE_ADDON_FEATURE', addonId, featureId: feature.id, label: label.trim() });
-            } else {
-              setLabel(feature.label);
-            }
-            setEditing(false);
-          }}
-          onKeyDown={e => {
-            if (e.key === 'Enter') e.currentTarget.blur();
-            if (e.key === 'Escape') { setLabel(feature.label); setEditing(false); }
-          }}
-          className="flex-1 text-xs border-b border-green-400 outline-none py-0.5 bg-transparent"
-        />
-      ) : (
-        <span
-          onClick={() => { setLabel(feature.label); setEditing(true); }}
-          className="flex-1 text-xs text-gray-700 cursor-text leading-relaxed"
-          title="Click to edit"
+    <div ref={setNodeRef} style={style}>
+      <div className="flex items-start gap-1.5 group rounded px-1 py-0.5 hover:bg-gray-50">
+        <button
+          {...attributes}
+          {...listeners}
+          className="mt-0.5 cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 flex-shrink-0 touch-none"
+          title="Drag to reorder"
         >
-          {feature.label}
-        </span>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+            <circle cx="3.5" cy="2.5" r="1.2"/><circle cx="3.5" cy="6" r="1.2"/><circle cx="3.5" cy="9.5" r="1.2"/>
+            <circle cx="8.5" cy="2.5" r="1.2"/><circle cx="8.5" cy="6" r="1.2"/><circle cx="8.5" cy="9.5" r="1.2"/>
+          </svg>
+        </button>
+
+        <div className="flex-1 min-w-0">
+          {editing ? (
+            <input
+              ref={inputRef}
+              // eslint-disable-next-line jsx-a11y/no-autofocus
+              autoFocus
+              value={label}
+              onChange={e => setLabel(e.target.value)}
+              onBlur={commitEdit}
+              onKeyDown={e => {
+                if (e.key === 'Enter') { linkFormOpenRef.current = false; commitEdit(); }
+                if (e.key === 'Escape') { setLabel(feature.label); setEditing(false); setShowLinkForm(false); linkFormOpenRef.current = false; }
+              }}
+              className="w-full text-xs border-b border-green-400 outline-none py-0.5 bg-transparent"
+            />
+          ) : (
+            <span
+              onClick={() => { setLabel(feature.label); setEditing(true); }}
+              className="block text-xs text-gray-700 cursor-text leading-relaxed"
+              title="Click to edit"
+            >
+              <RichLabel text={feature.label} />
+            </span>
+          )}
+        </div>
+
+        {/* Link button */}
+        <button
+          onMouseDown={editing ? (e => e.preventDefault()) : undefined}
+          onClick={openLinkForm}
+          className="mt-0.5 text-gray-300 hover:text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+          title="Insert link"
+        >
+          <LinkIcon />
+        </button>
+
+        {/* Delete button */}
+        <button
+          onClick={() => dispatch({ type: 'DELETE_ADDON_FEATURE', addonId, featureId: feature.id })}
+          className="mt-0.5 text-red-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+        </button>
+      </div>
+
+      {showLinkForm && (
+        <div className="px-1 pb-1.5">
+          <InsertLinkInline onInsert={handleInsertLink} onClose={handleCancelLink} />
+        </div>
       )}
-      <button
-        onClick={() => dispatch({ type: 'DELETE_ADDON_FEATURE', addonId, featureId: feature.id })}
-        className="mt-0.5 text-red-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-      >
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-          <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-        </svg>
-      </button>
     </div>
   );
 }
@@ -495,8 +738,26 @@ function AddonEditor({ addon, dispatch }: AddonEditorProps) {
   const [addingFeature, setAddingFeature] = useState(false);
   const [newFeatureLabel, setNewFeatureLabel] = useState('');
   const [activeDragLabel, setActiveDragLabel] = useState<string | null>(null);
+  const [showDescLinkForm, setShowDescLinkForm] = useState(false);
+  const descRef = useRef<HTMLTextAreaElement>(null);
+  const descSelRef = useRef({ start: 0, end: 0 });
 
   const addonSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+
+  function captureDescSel() {
+    const el = descRef.current;
+    if (el) descSelRef.current = { start: el.selectionStart ?? addon.description.length, end: el.selectionEnd ?? addon.description.length };
+  }
+
+  function handleDescLinkInsert(text: string, url: string) {
+    const insertion = `[${text}](${url})`;
+    const sel = descSelRef.current.start === 0 && descSelRef.current.end === 0
+      ? { start: addon.description.length, end: addon.description.length }
+      : descSelRef.current;
+    const newDesc = addon.description.slice(0, sel.start) + insertion + addon.description.slice(sel.end);
+    dispatch({ type: 'UPDATE_ADDON_META', addonId: addon.id, field: 'description', value: newDesc });
+    setShowDescLinkForm(false);
+  }
 
   function submitFeature() {
     const label = newFeatureLabel.trim();
@@ -559,13 +820,31 @@ function AddonEditor({ addon, dispatch }: AddonEditorProps) {
             Delete
           </button>
         </div>
+        <div className="flex items-center justify-between mt-1 mb-0.5">
+          <span className="text-xs text-gray-400">Description</span>
+          <button
+            onClick={() => { captureDescSel(); setShowDescLinkForm(true); }}
+            className="flex items-center gap-1 text-xs text-gray-400 hover:text-green-600 transition-colors"
+            title="Insert link into description"
+          >
+            <LinkIcon /> <span>Insert Link</span>
+          </button>
+        </div>
         <textarea
+          ref={descRef}
           value={addon.description}
           onChange={e => dispatch({ type: 'UPDATE_ADDON_META', addonId: addon.id, field: 'description', value: e.target.value })}
+          onSelect={captureDescSel}
+          onKeyUp={captureDescSel}
           rows={2}
           className="mt-1 w-full text-xs text-gray-500 bg-transparent border border-transparent hover:border-gray-200 focus:border-gray-300 rounded px-1 py-0.5 outline-none resize-none focus:ring-1 focus:ring-green-400"
           placeholder="Add-on description…"
         />
+        {showDescLinkForm && (
+          <div className="mt-1.5">
+            <InsertLinkInline onInsert={handleDescLinkInsert} onClose={() => setShowDescLinkForm(false)} />
+          </div>
+        )}
       </div>
 
       {/* Features */}
@@ -627,7 +906,9 @@ function AddonEditor({ addon, dispatch }: AddonEditorProps) {
 function AddonsTab({ addons, dispatch }: { addons: AddonDefinition[]; dispatch: Dispatch<AdminAction> }) {
   return (
     <div>
-      <p className="text-xs text-gray-400 mb-4">Click any field to edit inline. Drag a feature's <span className="font-semibold">⠿</span> handle to reorder it.</p>
+      <p className="text-xs text-gray-400 mb-4">
+        Click any field to edit inline. Drag a feature's <span className="font-semibold">⠿</span> handle to reorder it. Use the <span className="font-semibold">link</span> button to insert a link into feature labels or descriptions.
+      </p>
       <div className="grid grid-cols-2 gap-4">
         {addons.map(addon => (
           <AddonEditor key={addon.id} addon={addon} dispatch={dispatch} />

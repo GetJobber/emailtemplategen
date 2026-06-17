@@ -11,6 +11,7 @@ import {
   formatCurrency,
   formatValidUntil,
 } from '../../utils/priceUtils';
+import { stripLinkSyntax } from '../../utils/generateEmailHtml';
 
 interface Props {
   block: PlanBlockType;
@@ -41,7 +42,7 @@ export function PlanBlock({ block, dispatch }: Props) {
           {/* Header */}
           <div className="px-4 py-3 text-white" style={{ backgroundColor: def.color }}>
             <div className="font-bold text-lg">{def.title}</div>
-            <div className="text-sm opacity-80">{def.tagline}</div>
+            <div className="text-sm opacity-80">{stripLinkSyntax(def.tagline)}</div>
           </div>
 
           {/* Seat selector */}

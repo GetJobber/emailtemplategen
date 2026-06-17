@@ -1,3 +1,5 @@
+import { stripLinkSyntax } from '../../utils/generateEmailHtml';
+
 interface Feature {
   id: string;
   label: string;
@@ -73,7 +75,7 @@ export function FeatureBuckets({ allFeatures, visibleFeatureIds, keyFeatureIds, 
                 >
                   <StarFilledIcon />
                 </button>
-                <span className="text-sm text-gray-800 font-medium flex-1 leading-snug">{f.label}</span>
+                <span className="text-sm text-gray-800 font-medium flex-1 leading-snug">{stripLinkSyntax(f.label)}</span>
                 <button
                   onClick={() => onSetBucket(f.id, 'hidden')}
                   title="Hide from email"
@@ -105,7 +107,7 @@ export function FeatureBuckets({ allFeatures, visibleFeatureIds, keyFeatureIds, 
                 >
                   <StarOutlineIcon />
                 </button>
-                <span className="text-sm text-gray-700 flex-1 leading-snug">{f.label}</span>
+                <span className="text-sm text-gray-700 flex-1 leading-snug">{stripLinkSyntax(f.label)}</span>
                 <button
                   onClick={() => onSetBucket(f.id, 'hidden')}
                   title="Hide from email"
@@ -135,7 +137,7 @@ export function FeatureBuckets({ allFeatures, visibleFeatureIds, keyFeatureIds, 
                 >
                   <EyeOnIcon />
                 </button>
-                <span className="text-xs text-gray-300 flex-1 leading-snug italic">{f.label}</span>
+                <span className="text-xs text-gray-300 flex-1 leading-snug italic">{stripLinkSyntax(f.label)}</span>
               </div>
             ))}
           </div>

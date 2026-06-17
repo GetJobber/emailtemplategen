@@ -5,6 +5,7 @@ import type { CanvasAction } from '../../store/canvasReducer';
 import { PromoModal } from './PromoModal';
 import { FeatureBuckets } from './FeatureBuckets';
 import { applyPromo, formatCurrency, formatValidUntil } from '../../utils/priceUtils';
+import { stripLinkSyntax } from '../../utils/generateEmailHtml';
 
 interface Props {
   block: AddonBlockType;
@@ -65,7 +66,7 @@ export function AddonBlock({ block, dispatch }: Props) {
               </p>
             </div>
           )}
-          <div className="px-4 pt-2 pb-1 text-sm text-gray-600">{def.description}</div>
+          <div className="px-4 pt-2 pb-1 text-sm text-gray-600">{stripLinkSyntax(def.description)}</div>
           <div className="px-4 py-3">
             <FeatureBuckets
               allFeatures={def.features}

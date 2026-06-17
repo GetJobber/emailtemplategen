@@ -22,7 +22,7 @@ function escapeHtml(str: string): string {
  * - Converts [display text](url) to styled <a> links
  * - Converts newlines to <br>
  */
-function processTextContent(raw: string): string {
+function processTextContent(raw: string, linkColor = '#1F9839'): string {
   const LINK_RE = /\[([^\]]+)\]\(([^)]+)\)/g;
   const parts: string[] = [];
   let lastIndex = 0;
@@ -36,7 +36,7 @@ function processTextContent(raw: string): string {
     const linkText = escapeHtml(match[1]);
     const linkUrl = match[2].replace(/"/g, '&quot;');
     parts.push(
-      `<a href="${linkUrl}" target="_blank" style="color: #1F9839; text-decoration: underline;">${linkText}</a>`
+      `<a href="${linkUrl}" target="_blank" style="color: ${linkColor}; text-decoration: underline;">${linkText}</a>`
     );
     lastIndex = match.index + match[0].length;
   }
@@ -46,6 +46,11 @@ function processTextContent(raw: string): string {
   }
 
   return parts.join('').replace(/\n/g, '<br>');
+}
+
+/** Strip [display text](url) link syntax, leaving just the display text. */
+export function stripLinkSyntax(raw: string): string {
+  return raw.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
 }
 
 function renderTextBlock(block: TextBlock): string {
@@ -69,7 +74,7 @@ function buildFeatureRows(
   if (keyFeatures.length > 0) {
     rows += `<tr><td style="padding: 6px 0 4px; font-size: 11px; font-weight: bold; color: ${accentColor}; text-transform: uppercase; letter-spacing: 0.06em;">Key Features</td></tr>`;
     rows += keyFeatures.map(f =>
-      `<tr><td style="padding: 3px 0 3px 8px; font-weight: 600; color: #222;">✓ ${f.label}</td></tr>`
+      `<tr><td style="padding: 3px 0 3px 8px; font-weight: 600; color: #222;">✓ ${processTextContent(f.label)}</td></tr>`
     ).join('');
   }
 
@@ -78,7 +83,7 @@ function buildFeatureRows(
       rows += `<tr><td style="padding: 10px 0 4px; font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.06em;">Other features included</td></tr>`;
     }
     rows += otherFeatures.map(f =>
-      `<tr><td style="padding: 3px 0 3px 8px; color: #444;">✓ ${f.label}</td></tr>`
+      `<tr><td style="padding: 3px 0 3px 8px; color: #444;">✓ ${processTextContent(f.label)}</td></tr>`
     ).join('');
   }
 
@@ -143,7 +148,7 @@ function renderPlanBlock(block: PlanBlock, plans: PlanDefinition[]): string {
     <tr>
       <td style="background-color: ${def.color}; padding: 12px 16px;">
         <strong style="color: #ffffff; font-size: 18px;">${def.title}</strong>
-        <span style="color: rgba(255,255,255,0.85); font-size: 13px; display: block; margin-top: 2px;">${def.tagline}</span>
+        <span style="color: rgba(255,255,255,0.85); font-size: 13px; display: block; margin-top: 2px;">${processTextContent(def.tagline, 'rgba(255,255,255,0.9)')}</span>
       </td>
     </tr>
     <tr>
@@ -195,7 +200,7 @@ function renderAddonBlock(block: AddonBlock, addons: AddonDefinition[]): string 
       </td>
     </tr>
     <tr>
-      <td style="padding: 6px 14px 2px; color: #555; font-size: 13px;">${def.description}</td>
+      <td style="padding: 6px 14px 2px; color: #555; font-size: 13px;">${processTextContent(def.description)}</td>
     </tr>
     ${promo && block.promoValidUntil ? `
     <tr>
@@ -271,11 +276,11 @@ export function generateEmailText(state: AppState, plans: PlanDefinition[], addo
         const keyIds = block.keyFeatureIds ?? [];
         const keyFeaturesText = def.features
           .filter(f => keyIds.includes(f.id) && block.visibleFeatureIds.includes(f.id))
-          .map(f => `  ★ ${f.label}`)
+          .map(f => `  ★ ${stripLinkSyntax(f.label)}`)
           .join('\n');
         const otherFeaturesText = def.features
           .filter(f => block.visibleFeatureIds.includes(f.id) && !keyIds.includes(f.id))
-          .map(f => `  ✓ ${f.label}`)
+          .map(f => `  ✓ ${stripLinkSyntax(f.label)}`)
           .join('\n');
         const features = [
           keyFeaturesText ? `Key Features:\n${keyFeaturesText}` : '',
@@ -300,7 +305,7 @@ export function generateEmailText(state: AppState, plans: PlanDefinition[], addo
           ? `  Promotional pricing valid until ${formatValidUntil(block.promoValidUntil)}.`
           : '';
         return [
-          `${def.title} (${tier.seats} ${tier.seats === 1 ? 'user' : 'users'}) — ${def.tagline}`,
+          `${def.title} (${tier.seats} ${tier.seats === 1 ? 'user' : 'users'}) — ${stripLinkSyntax(def.tagline)}`,
           pricing,
           validUntilPlan,
           features,
@@ -312,11 +317,11 @@ export function generateEmailText(state: AppState, plans: PlanDefinition[], addo
         const addonKeyIds = block.keyFeatureIds ?? [];
         const addonKeyText = def.features
           .filter(f => addonKeyIds.includes(f.id) && block.visibleFeatureIds.includes(f.id))
-          .map(f => `  ★ ${f.label}`)
+          .map(f => `  ★ ${stripLinkSyntax(f.label)}`)
           .join('\n');
         const addonOtherText = def.features
           .filter(f => block.visibleFeatureIds.includes(f.id) && !addonKeyIds.includes(f.id))
-          .map(f => `  ✓ ${f.label}`)
+          .map(f => `  ✓ ${stripLinkSyntax(f.label)}`)
           .join('\n');
         const features = [
           addonKeyText ? `Key Features:\n${addonKeyText}` : '',
@@ -329,7 +334,7 @@ export function generateEmailText(state: AppState, plans: PlanDefinition[], addo
         const validUntilAddon = promo && block.promoValidUntil
           ? `Promotional pricing valid until ${formatValidUntil(block.promoValidUntil)}.`
           : '';
-        return [priceLine, def.description, validUntilAddon, features].filter(Boolean).join('\n');
+        return [priceLine, stripLinkSyntax(def.description), validUntilAddon, features].filter(Boolean).join('\n');
       }
       case 'signature':
         return '{{{Sender.Email_Signature_Rich_Text__c}}}';
