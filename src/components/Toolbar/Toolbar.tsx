@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { AppState } from '../../types';
-import { generateEmailHtml } from '../../utils/generateEmailHtml';
-import { copyToClipboard } from '../../utils/clipboard';
+import { generateEmailHtml, generateEmailText } from '../../utils/generateEmailHtml';
+import { copyToClipboard, copyRichTextToClipboard } from '../../utils/clipboard';
 import { PreviewModal } from './PreviewModal';
 
 interface Props {
@@ -10,6 +10,7 @@ interface Props {
 
 export function Toolbar({ state }: Props) {
   const [copied, setCopied] = useState(false);
+  const [copiedRich, setCopiedRich] = useState(false);
   const [previewing, setPreviewing] = useState(false);
 
   const hasBlocks = state.blocks.length > 0;
@@ -19,6 +20,14 @@ export function Toolbar({ state }: Props) {
     await copyToClipboard(html);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function handleCopyRich() {
+    const html = generateEmailHtml(state);
+    const plain = generateEmailText(state);
+    await copyRichTextToClipboard(html, plain);
+    setCopiedRich(true);
+    setTimeout(() => setCopiedRich(false), 2000);
   }
 
   return (
@@ -52,6 +61,20 @@ export function Toolbar({ state }: Props) {
           </button>
 
           <button
+            onClick={handleCopyRich}
+            disabled={!hasBlocks}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold border transition-all ${
+              copiedRich
+                ? 'bg-green-500 border-green-500 text-white'
+                : !hasBlocks
+                ? 'border-gray-200 text-gray-300 cursor-not-allowed bg-white'
+                : 'border-green-600 text-green-700 bg-white hover:bg-green-50 active:scale-95'
+            }`}
+          >
+            {copiedRich ? '✓ Copied!' : 'Copy Rich Text'}
+          </button>
+
+          <button
             onClick={handleCopy}
             disabled={!hasBlocks}
             className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
@@ -62,7 +85,7 @@ export function Toolbar({ state }: Props) {
                 : 'bg-green-600 text-white hover:bg-green-700 active:scale-95'
             }`}
           >
-            {copied ? '✓ Copied!' : 'Copy HTML to Clipboard'}
+            {copied ? '✓ Copied!' : 'Copy HTML'}
           </button>
         </div>
       </header>
