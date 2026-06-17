@@ -1,4 +1,4 @@
-import type { AppState, CanvasBlock, PlanBlock, AddonBlock, TextBlock } from '../types';
+import type { AppState, CanvasBlock, PlanBlock, AddonBlock, TextBlock, CheckoutLinkBlock } from '../types';
 import { PLANS } from '../data/plans';
 import { ADDONS } from '../data/addons';
 
@@ -109,12 +109,27 @@ function renderSignatureBlock(): string {
   return `<div style="${SECTION_STYLE}">{{{Sender.Email_Signature_Rich_Text__c}}}</div>`;
 }
 
+function renderCheckoutLinkBlock(block: CheckoutLinkBlock): string {
+  if (!block.url) return '';
+  return `
+<div style="${SECTION_STYLE} text-align: center;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr>
+      <td align="center" style="padding: 8px 0;">
+        <a href="${block.url}" target="_blank" style="display: inline-block; background-color: #1F9839; color: #ffffff; font-family: Arial, Helvetica, sans-serif; font-size: 15px; font-weight: bold; text-decoration: none; padding: 12px 28px; border-radius: 6px;">Preview Checkout Page</a>
+      </td>
+    </tr>
+  </table>
+</div>`;
+}
+
 function renderBlock(block: CanvasBlock): string {
   switch (block.kind) {
     case 'text': return renderTextBlock(block);
     case 'plan': return renderPlanBlock(block);
     case 'addon': return renderAddonBlock(block);
     case 'signature': return renderSignatureBlock();
+    case 'checkout': return renderCheckoutLinkBlock(block);
   }
 }
 
@@ -163,6 +178,8 @@ export function generateEmailText(state: AppState): string {
       }
       case 'signature':
         return '{{{Sender.Email_Signature_Rich_Text__c}}}';
+      case 'checkout':
+        return block.url ? `Preview Checkout Page: ${block.url}` : '';
     }
   }).join('\n\n');
 }

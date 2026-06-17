@@ -28,7 +28,7 @@ export interface AddonDefinition {
   features: PlanFeature[];
 }
 
-export type BlockKind = 'plan' | 'addon' | 'signature' | 'text';
+export type BlockKind = 'plan' | 'addon' | 'signature' | 'text' | 'checkout';
 
 interface BaseBlock {
   instanceId: string;
@@ -57,7 +57,12 @@ export interface TextBlock extends BaseBlock {
   content: string;
 }
 
-export type CanvasBlock = PlanBlock | AddonBlock | SignatureBlock | TextBlock;
+export interface CheckoutLinkBlock extends BaseBlock {
+  kind: 'checkout';
+  url: string;
+}
+
+export type CanvasBlock = PlanBlock | AddonBlock | SignatureBlock | TextBlock | CheckoutLinkBlock;
 
 export interface EmailHeader {
   to: string;
