@@ -57,16 +57,20 @@ function renderPlanBlock(block: PlanBlock): string {
       <td style="padding: 4px 0; text-align: right; font-size: 13px;">
         <span style="text-decoration: line-through; color: #aaa; margin-right: 6px;">${original}</span>
         <strong style="color: #b45309;">${discStr}${unit}</strong>
-        ${isAnnualTotal && monthlyDisc ? `<span style="display:block; font-size:11px; color:#b45309;">(${monthlyDisc} × 12)</span>` : ''}
+        ${isAnnualTotal && monthlyDisc ? `<span style="display:block; font-size:11px; color:#b45309;">(${monthlyDisc}/mo)</span>` : ''}
         <span style="display:block; font-size:11px; color:#888;">first ${promo.durationMonths} month${promo.durationMonths !== 1 ? 's' : ''}, then ${original}</span>
       </td>
     </tr>`;
       }
 
+      const isAnnualTotal = key === 'annualTotal';
       return `
     <tr>
       <td style="padding: 4px 0; color: #555; font-size: 13px;">${label}</td>
-      <td style="padding: 4px 0; text-align: right; font-weight: bold; color: ${def.color}; font-size: 13px;">${original}</td>
+      <td style="padding: 4px 0; text-align: right; font-weight: bold; color: ${def.color}; font-size: 13px;">
+        ${original}
+        ${isAnnualTotal ? `<span style="display:block; font-size:11px; font-weight:normal; color:#888;">(${tier.annualMonthly})</span>` : ''}
+      </td>
     </tr>`;
     })
     .join('');
@@ -207,6 +211,9 @@ export function generateEmailText(state: AppState): string {
               const discounted = applyPromo(tier[key], promo);
               const unit = tier[key].includes('/yr') ? '/yr' : '/mo';
               return `  ${PRICING_LABELS[key]}: ${formatCurrency(discounted)}${unit} (${promo.durationMonths} mo, then ${tier[key]})`;
+            }
+            if (key === 'annualTotal') {
+              return `  ${PRICING_LABELS[key]}: ${tier[key]} (${tier.annualMonthly})`;
             }
             return `  ${PRICING_LABELS[key]}: ${tier[key]}`;
           })

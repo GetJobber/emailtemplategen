@@ -3,8 +3,7 @@ import type { PricingKey, PromoConfig } from '../types';
 export const PRICING_LABELS: Record<PricingKey, string> = {
   monthlyNoCommitment: 'Monthly, no commitment',
   monthlyAnnual: 'Monthly, 1-year commitment',
-  annualMonthly: 'Annual, paid upfront (per mo)',
-  annualTotal: 'Annual, paid upfront (total)',
+  annualTotal: 'Annual, paid upfront',
 };
 
 /** Strip '$', commas, '/mo', '/yr' and return the numeric value */

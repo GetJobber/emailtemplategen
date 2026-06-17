@@ -30,12 +30,11 @@ export interface AddonDefinition {
 
 export type BlockKind = 'plan' | 'addon' | 'signature' | 'text' | 'checkout';
 
-export type PricingKey = 'monthlyNoCommitment' | 'monthlyAnnual' | 'annualMonthly' | 'annualTotal';
+export type PricingKey = 'monthlyNoCommitment' | 'monthlyAnnual' | 'annualTotal';
 
 export const ALL_PRICING_KEYS: PricingKey[] = [
   'monthlyNoCommitment',
   'monthlyAnnual',
-  'annualMonthly',
   'annualTotal',
 ];
 

@@ -119,7 +119,7 @@ export function PlanBlock({ block, dispatch }: Props) {
                           </div>
                           {isAnnualTotal && (
                             <div className="text-xs text-amber-500">
-                              ({formatCurrency(Math.round((discounted / 12) * 100) / 100)} × 12)
+                              ({formatCurrency(Math.round((discounted / 12) * 100) / 100)}/mo)
                             </div>
                           )}
                           <div className="text-xs text-gray-400">
@@ -127,12 +127,19 @@ export function PlanBlock({ block, dispatch }: Props) {
                           </div>
                         </>
                       ) : (
-                        <span
-                          className="text-sm font-semibold"
-                          style={{ color: isVisible ? def.color : '#d1d5db' }}
-                        >
-                          {original}
-                        </span>
+                        <>
+                          <span
+                            className="text-sm font-semibold"
+                            style={{ color: isVisible ? def.color : '#d1d5db' }}
+                          >
+                            {original}
+                          </span>
+                          {isAnnualTotal && (
+                            <div className={`text-xs ${isVisible ? 'text-gray-400' : 'text-gray-200'}`}>
+                              ({selectedTier.annualMonthly})
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
