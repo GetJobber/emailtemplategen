@@ -21,7 +21,7 @@ import { AdminModal } from './components/Admin/AdminModal';
 
 export default function App() {
   const [state, dispatch] = useReducer(canvasReducer, initialState);
-  const { adminState, adminDispatch } = useAdminStore();
+  const { adminState, adminDispatch, isDirty, save, cancel, resetToDefaults } = useAdminStore();
   const [showAdmin, setShowAdmin] = useState(false);
   const [insertIndex, setInsertIndex] = useState<number | null>(null);
   const [dragLabel, setDragLabel] = useState<string | null>(null);
@@ -88,7 +88,7 @@ export default function App() {
   }
 
   return (
-    <AdminDataContext.Provider value={{ plans: adminState.plans, addons: adminState.addons, adminDispatch }}>
+    <AdminDataContext.Provider value={{ plans: adminState.plans, addons: adminState.addons, adminDispatch, isDirty, save, cancel, resetToDefaults }}>
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}

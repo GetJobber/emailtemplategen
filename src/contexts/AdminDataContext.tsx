@@ -9,12 +9,20 @@ interface AdminDataContextValue {
   plans: PlanDefinition[];
   addons: AddonDefinition[];
   adminDispatch: Dispatch<AdminAction>;
+  isDirty: boolean;
+  save: () => void;
+  cancel: () => void;
+  resetToDefaults: () => void;
 }
 
 export const AdminDataContext = createContext<AdminDataContextValue>({
   plans: PLANS,
   addons: ADDONS,
   adminDispatch: () => {},
+  isDirty: false,
+  save: () => {},
+  cancel: () => {},
+  resetToDefaults: () => {},
 });
 
 export function useAdminData() {

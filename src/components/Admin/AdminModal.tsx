@@ -45,7 +45,6 @@ function DraggableFeatureRow({ planId, feature, dispatch }: DraggableFeatureProp
       style={style}
       className={`flex items-start gap-1.5 group rounded px-1 py-0.5 hover:bg-gray-50 ${isDragging ? 'opacity-30' : ''}`}
     >
-      {/* Drag handle */}
       <button
         {...attributes}
         {...listeners}
@@ -58,7 +57,6 @@ function DraggableFeatureRow({ planId, feature, dispatch }: DraggableFeatureProp
         </svg>
       </button>
 
-      {/* Label — click to edit inline */}
       {editing ? (
         <input
           // eslint-disable-next-line jsx-a11y/no-autofocus
@@ -73,7 +71,10 @@ function DraggableFeatureRow({ planId, feature, dispatch }: DraggableFeatureProp
             }
             setEditing(false);
           }}
-          onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') { setLabel(feature.label); setEditing(false); } }}
+          onKeyDown={e => {
+            if (e.key === 'Enter') e.currentTarget.blur();
+            if (e.key === 'Escape') { setLabel(feature.label); setEditing(false); }
+          }}
           className="flex-1 text-xs border-b border-green-400 outline-none py-0.5 bg-transparent"
         />
       ) : (
@@ -86,7 +87,6 @@ function DraggableFeatureRow({ planId, feature, dispatch }: DraggableFeatureProp
         </span>
       )}
 
-      {/* Delete */}
       <button
         onClick={() => dispatch({ type: 'DELETE_PLAN_FEATURE', planId, featureId: feature.id })}
         className="mt-0.5 text-red-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
@@ -210,6 +210,12 @@ function PlanEditor({ plan, dispatch }: PlanEditorProps) {
   const { setNodeRef, isOver } = useDroppable({ id: `planzone:${plan.id}` });
   const [tiersExpanded, setTiersExpanded] = useState(false);
 
+  function handleDeletePlan() {
+    if (window.confirm(`Delete the "${plan.title}" plan? Any canvas blocks using this plan will become empty.`)) {
+      dispatch({ type: 'DELETE_PLAN', planId: plan.id });
+    }
+  }
+
   return (
     <div className="border border-gray-200 rounded-xl overflow-hidden flex flex-col">
       {/* Plan header */}
@@ -222,6 +228,13 @@ function PlanEditor({ plan, dispatch }: PlanEditorProps) {
             className="font-bold text-base bg-transparent border-b border-transparent hover:border-gray-300 focus:border-gray-500 outline-none flex-1"
             style={{ color: plan.color }}
           />
+          <button
+            onClick={handleDeletePlan}
+            className="flex-shrink-0 text-xs text-red-400 hover:text-red-600 font-medium px-2 py-0.5 rounded border border-transparent hover:border-red-200 hover:bg-red-50 transition-colors"
+            title="Delete this plan"
+          >
+            Delete plan
+          </button>
         </div>
         <input
           value={plan.tagline}
@@ -334,6 +347,12 @@ function PlansTab({ plans, dispatch }: PlansTabProps) {
           <PlanEditor key={plan.id} plan={plan} dispatch={dispatch} />
         ))}
       </div>
+      <button
+        onClick={() => dispatch({ type: 'ADD_PLAN' })}
+        className="mt-4 w-full py-2.5 border-2 border-dashed border-gray-200 hover:border-green-400 rounded-xl text-sm font-semibold text-gray-400 hover:text-green-600 transition-colors"
+      >
+        + Add New Plan
+      </button>
       <DragOverlay>
         {activeFeatureDrag && (
           <div className="bg-white border border-green-400 shadow-lg rounded-full px-3 py-1 text-xs font-semibold text-green-700 cursor-grabbing">
@@ -420,11 +439,17 @@ function AddonEditor({ addon, dispatch }: AddonEditorProps) {
     setAddingFeature(false);
   }
 
+  function handleDeleteAddon() {
+    if (window.confirm(`Delete the "${addon.name}" add-on? Any canvas blocks using this add-on will become empty.`)) {
+      dispatch({ type: 'DELETE_ADDON', addonId: addon.id });
+    }
+  }
+
   return (
     <div className="border border-gray-200 rounded-xl overflow-hidden">
       {/* Header */}
       <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 mb-1">
           <input
             value={addon.name}
             onChange={e => dispatch({ type: 'UPDATE_ADDON_META', addonId: addon.id, field: 'name', value: e.target.value })}
@@ -439,12 +464,19 @@ function AddonEditor({ addon, dispatch }: AddonEditorProps) {
               placeholder="$0/mo"
             />
           </div>
+          <button
+            onClick={handleDeleteAddon}
+            className="flex-shrink-0 text-xs text-red-400 hover:text-red-600 font-medium px-2 py-0.5 rounded border border-transparent hover:border-red-200 hover:bg-red-50 transition-colors"
+            title="Delete this add-on"
+          >
+            Delete
+          </button>
         </div>
         <textarea
           value={addon.description}
           onChange={e => dispatch({ type: 'UPDATE_ADDON_META', addonId: addon.id, field: 'description', value: e.target.value })}
           rows={2}
-          className="mt-2 w-full text-xs text-gray-500 bg-transparent border border-transparent hover:border-gray-200 focus:border-gray-300 rounded px-1 py-0.5 outline-none resize-none focus:ring-1 focus:ring-green-400"
+          className="mt-1 w-full text-xs text-gray-500 bg-transparent border border-transparent hover:border-gray-200 focus:border-gray-300 rounded px-1 py-0.5 outline-none resize-none focus:ring-1 focus:ring-green-400"
           placeholder="Add-on description…"
         />
       </div>
@@ -489,12 +521,18 @@ function AddonEditor({ addon, dispatch }: AddonEditorProps) {
 function AddonsTab({ addons, dispatch }: { addons: AddonDefinition[]; dispatch: Dispatch<AdminAction> }) {
   return (
     <div>
-      <p className="text-xs text-gray-400 mb-4">Click any field to edit inline. Changes are saved automatically.</p>
+      <p className="text-xs text-gray-400 mb-4">Click any field to edit inline. Changes are applied live.</p>
       <div className="grid grid-cols-2 gap-4">
         {addons.map(addon => (
           <AddonEditor key={addon.id} addon={addon} dispatch={dispatch} />
         ))}
       </div>
+      <button
+        onClick={() => dispatch({ type: 'ADD_ADDON' })}
+        className="mt-4 w-full py-2.5 border-2 border-dashed border-gray-200 hover:border-green-400 rounded-xl text-sm font-semibold text-gray-400 hover:text-green-600 transition-colors"
+      >
+        + Add New Add-on
+      </button>
     </div>
   );
 }
@@ -503,11 +541,11 @@ function AddonsTab({ addons, dispatch }: { addons: AddonDefinition[]; dispatch: 
 
 export function AdminModal({ onClose }: Props) {
   const [tab, setTab] = useState<'plans' | 'addons'>('plans');
-  const { plans, addons, adminDispatch } = useAdminData();
+  const { plans, addons, adminDispatch, isDirty, save, cancel, resetToDefaults } = useAdminData();
 
   function handleReset() {
     if (window.confirm('Reset all pricing and features to the original defaults? This cannot be undone.')) {
-      adminDispatch({ type: 'RESET_TO_DEFAULTS' });
+      resetToDefaults();
     }
   }
 
@@ -518,9 +556,38 @@ export function AdminModal({ onClose }: Props) {
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <div>
             <h2 className="text-base font-bold text-gray-900">Admin — Pricing &amp; Features</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Changes are persisted in your browser and applied immediately.</p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {isDirty
+                ? 'You have unsaved changes. Save to persist or Cancel to revert.'
+                : 'All changes saved. Edits apply live to the canvas.'}
+            </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            {/* Cancel Changes */}
+            <button
+              onClick={cancel}
+              disabled={!isDirty}
+              className={`text-xs font-semibold rounded-lg px-3 py-1.5 border transition-colors ${
+                isDirty
+                  ? 'text-gray-600 border-gray-300 hover:bg-gray-50'
+                  : 'text-gray-300 border-gray-200 cursor-not-allowed'
+              }`}
+            >
+              Cancel Changes
+            </button>
+            {/* Save Changes */}
+            <button
+              onClick={save}
+              disabled={!isDirty}
+              className={`text-xs font-semibold rounded-lg px-3 py-1.5 border transition-colors ${
+                isDirty
+                  ? 'bg-green-600 text-white border-green-600 hover:bg-green-700'
+                  : 'bg-gray-100 text-gray-300 border-gray-200 cursor-not-allowed'
+              }`}
+            >
+              Save Changes
+            </button>
+            {/* Reset to Defaults */}
             <button
               onClick={handleReset}
               className="text-xs font-semibold text-red-500 hover:text-red-700 border border-red-200 hover:border-red-400 rounded-lg px-3 py-1.5 transition-colors"

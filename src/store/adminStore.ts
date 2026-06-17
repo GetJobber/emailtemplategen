@@ -1,4 +1,4 @@
-import { useReducer, useEffect } from 'react';
+import { useReducer, useState } from 'react';
 import { PLANS as DEFAULT_PLANS } from '../data/plans';
 import { ADDONS as DEFAULT_ADDONS } from '../data/addons';
 import type { PlanDefinition, AddonDefinition, PriceTier } from '../types';
@@ -19,11 +19,15 @@ export type AdminAction =
   | { type: 'UPDATE_PLAN_FEATURE'; planId: string; featureId: string; label: string }
   | { type: 'DELETE_PLAN_FEATURE'; planId: string; featureId: string }
   | { type: 'MOVE_PLAN_FEATURE'; fromPlanId: string; toPlanId: string; featureId: string }
+  | { type: 'ADD_PLAN' }
+  | { type: 'DELETE_PLAN'; planId: string }
   | { type: 'UPDATE_ADDON_META'; addonId: string; field: 'name' | 'description' | 'price'; value: string }
   | { type: 'ADD_ADDON_FEATURE'; addonId: string; label: string }
   | { type: 'UPDATE_ADDON_FEATURE'; addonId: string; featureId: string; label: string }
   | { type: 'DELETE_ADDON_FEATURE'; addonId: string; featureId: string }
-  | { type: 'RESET_TO_DEFAULTS' };
+  | { type: 'ADD_ADDON' }
+  | { type: 'DELETE_ADDON'; addonId: string }
+  | { type: 'RESET_TO_STATE'; state: AdminState };
 
 function adminReducer(state: AdminState, action: AdminAction): AdminState {
   switch (action.type) {
@@ -137,6 +141,28 @@ function adminReducer(state: AdminState, action: AdminAction): AdminState {
       };
     }
 
+    case 'ADD_PLAN': {
+      const newId = `custom-plan-${Date.now()}`;
+      const newPlan: PlanDefinition = {
+        id: newId,
+        title: 'New Plan',
+        tagline: 'Plan tagline here.',
+        color: '#6366f1',
+        tiers: [{
+          seats: 1,
+          monthlyNoCommitment: '$0/mo',
+          monthlyAnnual: '$0/mo',
+          annualMonthly: '($0/mo)',
+          annualTotal: '$0/yr',
+        }],
+        features: [],
+      };
+      return { ...state, plans: [...state.plans, newPlan] };
+    }
+
+    case 'DELETE_PLAN':
+      return { ...state, plans: state.plans.filter(p => p.id !== action.planId) };
+
     case 'UPDATE_ADDON_META':
       return {
         ...state,
@@ -182,15 +208,32 @@ function adminReducer(state: AdminState, action: AdminAction): AdminState {
         ),
       };
 
-    case 'RESET_TO_DEFAULTS':
-      return { plans: DEFAULT_PLANS, addons: DEFAULT_ADDONS };
+    case 'ADD_ADDON': {
+      const newId = `custom-addon-${Date.now()}`;
+      const newAddon: AddonDefinition = {
+        id: newId,
+        name: 'New Add-on',
+        description: 'Describe what this add-on does.',
+        price: '$0/mo',
+        features: [],
+      };
+      return { ...state, addons: [...state.addons, newAddon] };
+    }
+
+    case 'DELETE_ADDON':
+      return { ...state, addons: state.addons.filter(a => a.id !== action.addonId) };
+
+    // RESET_TO_STATE is used by cancel() and resetToDefaults() — returns the given
+    // state reference directly so reference-equality isDirty check works correctly.
+    case 'RESET_TO_STATE':
+      return action.state;
 
     default:
       return state;
   }
 }
 
-function loadState(): AdminState {
+function loadFromStorage(): AdminState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return JSON.parse(raw) as AdminState;
@@ -198,14 +241,37 @@ function loadState(): AdminState {
   return { plans: DEFAULT_PLANS, addons: DEFAULT_ADDONS };
 }
 
+function persistToStorage(state: AdminState): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch {}
+}
+
 export function useAdminStore() {
-  const [adminState, adminDispatch] = useReducer(adminReducer, undefined, loadState);
+  // savedState is what's currently on disk. workingState is the live draft.
+  // isDirty uses reference equality: every reducer action returns a new object,
+  // and RESET_TO_STATE returns the savedState reference itself, so the check
+  // snaps back to false after save or cancel without a deep comparison.
+  const [savedState, setSavedState] = useState(loadFromStorage);
+  const [workingState, adminDispatch] = useReducer(adminReducer, savedState);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(adminState));
-    } catch {}
-  }, [adminState]);
+  const isDirty = workingState !== savedState;
 
-  return { adminState, adminDispatch };
+  function save() {
+    setSavedState(workingState);
+    persistToStorage(workingState);
+  }
+
+  function cancel() {
+    adminDispatch({ type: 'RESET_TO_STATE', state: savedState });
+  }
+
+  function resetToDefaults() {
+    const defaults: AdminState = { plans: DEFAULT_PLANS, addons: DEFAULT_ADDONS };
+    adminDispatch({ type: 'RESET_TO_STATE', state: defaults });
+    setSavedState(defaults);
+    persistToStorage(defaults);
+  }
+
+  return { adminState: workingState, adminDispatch, isDirty, save, cancel, resetToDefaults };
 }
