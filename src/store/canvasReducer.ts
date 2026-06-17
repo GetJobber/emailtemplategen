@@ -7,6 +7,7 @@ export type CanvasAction =
   | { type: 'TOGGLE_FEATURE'; instanceId: string; featureId: string }
   | { type: 'SET_PLAN_SEATS'; instanceId: string; seats: number }
   | { type: 'UPDATE_TEXT'; instanceId: string; content: string }
+  | { type: 'SET_CHECKOUT_URL'; instanceId: string; url: string }
   | { type: 'SET_HEADER'; field: keyof EmailHeader; value: string };
 
 export const initialState: AppState = {
@@ -62,6 +63,16 @@ export function canvasReducer(state: AppState, action: CanvasAction): AppState {
         blocks: state.blocks.map(b =>
           b.instanceId === action.instanceId && b.kind === 'text'
             ? { ...b, content: action.content }
+            : b
+        ),
+      };
+
+    case 'SET_CHECKOUT_URL':
+      return {
+        ...state,
+        blocks: state.blocks.map(b =>
+          b.instanceId === action.instanceId && b.kind === 'checkout'
+            ? { ...b, url: action.url }
             : b
         ),
       };

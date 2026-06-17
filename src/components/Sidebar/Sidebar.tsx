@@ -71,6 +71,11 @@ export function Sidebar({ dispatch }: Props) {
             description="Add a custom paragraph or greeting"
             onAdd={() => addBlock({ instanceId: generateId(), kind: 'text', content: '' })}
           />
+          <SidebarItem
+            label="Checkout Link"
+            description="Paste a checkout URL — renders as a button in the email"
+            onAdd={() => addBlock({ instanceId: generateId(), kind: 'checkout', url: '' })}
+          />
         </SidebarSection>
       </div>
     </aside>
