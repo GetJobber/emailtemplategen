@@ -3,8 +3,7 @@ import type { PricingKey, PromoConfig } from '../types';
 export const PRICING_LABELS: Record<PricingKey, string> = {
   monthlyNoCommitment: 'Monthly, no commitment',
   monthlyAnnual: 'Monthly, 1-year commitment',
-  annualMonthly: 'Annual, paid upfront (per mo)',
-  annualTotal: 'Annual, paid upfront (total)',
+  annualTotal: 'Annual, paid upfront',
 };
 
 /** Strip '$', commas, '/mo', '/yr' and return the numeric value */
@@ -28,6 +27,23 @@ export function applyPromo(originalStr: string, promo: PromoConfig): number {
 export function formatCurrency(value: number): string {
   if (Number.isInteger(value)) return '$' + value.toLocaleString();
   return '$' + value.toFixed(2);
+}
+
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+function getOrdinal(n: number): string {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+/** Format an ISO date string (YYYY-MM-DD) as "Month Dth YYYY", e.g. "July 10th 2026" */
+export function formatValidUntil(dateStr: string): string {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return `${MONTH_NAMES[month - 1]} ${getOrdinal(day)} ${year}`;
 }
 
 /** Convert a month count to a human-readable duration */

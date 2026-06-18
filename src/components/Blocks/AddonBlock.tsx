@@ -1,9 +1,11 @@
 import { useState, type Dispatch } from 'react';
 import type { AddonBlock as AddonBlockType } from '../../types';
-import { ADDONS } from '../../data/addons';
+import { useAdminData } from '../../contexts/AdminDataContext';
 import type { CanvasAction } from '../../store/canvasReducer';
 import { PromoModal } from './PromoModal';
-import { applyPromo, formatCurrency, buildAddonPromoSentence } from '../../utils/priceUtils';
+import { FeatureBuckets } from './FeatureBuckets';
+import { applyPromo, formatCurrency, formatValidUntil } from '../../utils/priceUtils';
+import { stripLinkSyntax } from '../../utils/generateEmailHtml';
 
 interface Props {
   block: AddonBlockType;
@@ -11,8 +13,9 @@ interface Props {
 }
 
 export function AddonBlock({ block, dispatch }: Props) {
+  const { addons } = useAdminData();
   const [showPromoModal, setShowPromoModal] = useState(false);
-  const def = ADDONS.find(a => a.id === block.definitionId);
+  const def = addons.find(a => a.id === block.definitionId);
   if (!def) return null;
 
   const promo = block.promo ?? null;
@@ -56,31 +59,23 @@ export function AddonBlock({ block, dispatch }: Props) {
             </div>
           </div>
 
-          {/* Promo sentence */}
-          {promo && (
-            <div className="px-4 py-2 bg-amber-50 border-t border-amber-100">
-              <p className="text-xs text-amber-700 leading-relaxed">
-                {buildAddonPromoSentence(def.name, def.price, promo)}
+          {promo && block.promoValidUntil && (
+            <div className="px-4 pt-1.5">
+              <p className="text-xs text-amber-700">
+                Promotional pricing valid until {formatValidUntil(block.promoValidUntil)}.
               </p>
             </div>
           )}
-
-          <div className="px-4 pt-2 pb-1 text-sm text-gray-600">{def.description}</div>
+          <div className="px-4 pt-2 pb-1 text-sm text-gray-600">{stripLinkSyntax(def.description)}</div>
           <div className="px-4 py-3">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Features to include</p>
-            <div className="space-y-1">
-              {def.features.map(f => (
-                <label key={f.id} className="flex items-center gap-2 cursor-pointer group">
-                  <input
-                    type="checkbox"
-                    className="w-4 h-4 rounded accent-green-600"
-                    checked={block.visibleFeatureIds.includes(f.id)}
-                    onChange={() => dispatch({ type: 'TOGGLE_FEATURE', instanceId: block.instanceId, featureId: f.id })}
-                  />
-                  <span className="text-sm text-gray-700 group-hover:text-gray-900">{f.label}</span>
-                </label>
-              ))}
-            </div>
+            <FeatureBuckets
+              allFeatures={def.features}
+              visibleFeatureIds={block.visibleFeatureIds}
+              keyFeatureIds={block.keyFeatureIds ?? []}
+              onSetBucket={(featureId, bucket) =>
+                dispatch({ type: 'SET_FEATURE_BUCKET', instanceId: block.instanceId, featureId, bucket })
+              }
+            />
           </div>
         </div>
       </div>
@@ -90,9 +85,10 @@ export function AddonBlock({ block, dispatch }: Props) {
           title={def.name}
           rows={[{ key: 'price', label: def.name, originalPrice: def.price }]}
           initialPromos={promo ? { price: promo } : {}}
-          onSave={promos => {
+          initialValidUntil={block.promoValidUntil}
+          onSave={(promos, validUntil) => {
             const p = promos['price'] ?? null;
-            dispatch({ type: 'SET_ADDON_PROMO', instanceId: block.instanceId, promo: p as typeof block.promo });
+            dispatch({ type: 'SET_ADDON_PROMO', instanceId: block.instanceId, promo: p as typeof block.promo, validUntil });
           }}
           onClose={() => setShowPromoModal(false)}
         />

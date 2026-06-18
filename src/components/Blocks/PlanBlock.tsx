@@ -1,15 +1,17 @@
 import { useState, type Dispatch } from 'react';
 import type { PlanBlock as PlanBlockType, PricingKey } from '../../types';
 import { ALL_PRICING_KEYS } from '../../types';
-import { PLANS } from '../../data/plans';
+import { useAdminData } from '../../contexts/AdminDataContext';
 import type { CanvasAction } from '../../store/canvasReducer';
 import { PromoModal, type PromoRow } from './PromoModal';
+import { FeatureBuckets } from './FeatureBuckets';
 import {
   PRICING_LABELS,
   applyPromo,
   formatCurrency,
-  buildPromoSentence,
+  formatValidUntil,
 } from '../../utils/priceUtils';
+import { stripLinkSyntax } from '../../utils/generateEmailHtml';
 
 interface Props {
   block: PlanBlockType;
@@ -17,8 +19,9 @@ interface Props {
 }
 
 export function PlanBlock({ block, dispatch }: Props) {
+  const { plans } = useAdminData();
   const [showPromoModal, setShowPromoModal] = useState(false);
-  const def = PLANS.find(p => p.id === block.definitionId);
+  const def = plans.find(p => p.id === block.definitionId);
   if (!def) return null;
 
   const selectedTier = def.tiers.find(t => t.seats === block.selectedSeats) ?? def.tiers[0];
@@ -39,7 +42,7 @@ export function PlanBlock({ block, dispatch }: Props) {
           {/* Header */}
           <div className="px-4 py-3 text-white" style={{ backgroundColor: def.color }}>
             <div className="font-bold text-lg">{def.title}</div>
-            <div className="text-sm opacity-80">{def.tagline}</div>
+            <div className="text-sm opacity-80">{stripLinkSyntax(def.tagline)}</div>
           </div>
 
           {/* Seat selector */}
@@ -120,7 +123,7 @@ export function PlanBlock({ block, dispatch }: Props) {
                           </div>
                           {isAnnualTotal && (
                             <div className="text-xs text-amber-500">
-                              ({formatCurrency(Math.round((discounted / 12) * 100) / 100)} × 12)
+                              ({formatCurrency(Math.round((discounted / 12) * 100) / 100)}/mo)
                             </div>
                           )}
                           <div className="text-xs text-gray-400">
@@ -128,12 +131,19 @@ export function PlanBlock({ block, dispatch }: Props) {
                           </div>
                         </>
                       ) : (
-                        <span
-                          className="text-sm font-semibold"
-                          style={{ color: isVisible ? def.color : '#d1d5db' }}
-                        >
-                          {original}
-                        </span>
+                        <>
+                          <span
+                            className="text-sm font-semibold"
+                            style={{ color: isVisible ? def.color : '#d1d5db' }}
+                          >
+                            {original}
+                          </span>
+                          {isAnnualTotal && (
+                            <div className={`text-xs ${isVisible ? 'text-gray-400' : 'text-gray-200'}`}>
+                              ({selectedTier.annualMonthly})
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
@@ -141,34 +151,23 @@ export function PlanBlock({ block, dispatch }: Props) {
               })}
             </div>
 
-            {/* Promo summary sentences */}
-            {hasAnyPromo && (
-              <div className="mt-3 space-y-1.5">
-                {ALL_PRICING_KEYS.filter(k => promotions[k] && visiblePricingKeys.includes(k)).map(key => (
-                  <p key={key} className="text-xs text-amber-700 bg-amber-50 rounded px-2 py-1.5 leading-relaxed">
-                    {buildPromoSentence(key, def.title, selectedTier[key], promotions[key]!)}
-                  </p>
-                ))}
-              </div>
+            {hasAnyPromo && block.promoValidUntil && (
+              <p className="text-xs text-amber-700 mt-2">
+                Promotional pricing valid until {formatValidUntil(block.promoValidUntil)}.
+              </p>
             )}
           </div>
 
-          {/* Feature toggles */}
+          {/* Feature buckets */}
           <div className="px-4 py-3">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Features to include</p>
-            <div className="space-y-1">
-              {def.features.map(f => (
-                <label key={f.id} className="flex items-center gap-2 cursor-pointer group">
-                  <input
-                    type="checkbox"
-                    className="w-4 h-4 rounded accent-green-600"
-                    checked={block.visibleFeatureIds.includes(f.id)}
-                    onChange={() => dispatch({ type: 'TOGGLE_FEATURE', instanceId: block.instanceId, featureId: f.id })}
-                  />
-                  <span className="text-sm text-gray-700 group-hover:text-gray-900">{f.label}</span>
-                </label>
-              ))}
-            </div>
+            <FeatureBuckets
+              allFeatures={def.features}
+              visibleFeatureIds={block.visibleFeatureIds}
+              keyFeatureIds={block.keyFeatureIds ?? []}
+              onSetBucket={(featureId, bucket) =>
+                dispatch({ type: 'SET_FEATURE_BUCKET', instanceId: block.instanceId, featureId, bucket })
+              }
+            />
           </div>
         </div>
       </div>
@@ -178,7 +177,8 @@ export function PlanBlock({ block, dispatch }: Props) {
           title={`${def.title} — ${selectedTier.seats} ${selectedTier.seats === 1 ? 'user' : 'users'}`}
           rows={promoRows}
           initialPromos={promotions}
-          onSave={promos => dispatch({ type: 'SET_PLAN_PROMOTIONS', instanceId: block.instanceId, promotions: promos })}
+          initialValidUntil={block.promoValidUntil}
+          onSave={(promos, validUntil) => dispatch({ type: 'SET_PLAN_PROMOTIONS', instanceId: block.instanceId, promotions: promos, validUntil })}
           onClose={() => setShowPromoModal(false)}
         />
       )}
