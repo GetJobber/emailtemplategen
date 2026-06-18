@@ -125,7 +125,7 @@ function renderPlanBlock(block: PlanBlock, plans: PlanDefinition[]): string {
         <span style="text-decoration: line-through; color: #aaa; margin-right: 6px;">${original}</span>
         <strong style="color: #b45309;">${discStr}${unit}</strong>
         ${isAnnualTotal && monthlyDisc ? `<span style="display:block; font-size:11px; color:#b45309;">(${monthlyDisc}/mo)</span>` : ''}
-        <span style="display:block; font-size:11px; color:#888;">first ${promo.durationMonths} month${promo.durationMonths !== 1 ? 's' : ''}, then ${original}</span>
+        <span style="display:block; font-size:11px; color:#888;">${promo.type === 'percent' ? `${promo.value}%` : `$${promo.value}`} off for ${promo.durationMonths} mo, then ${original}</span>
       </td>
     </tr>`;
       }
@@ -186,8 +186,9 @@ function renderAddonBlock(block: AddonBlock, addons: AddonDefinition[]): string 
   const promo = block.promo ?? null;
   const discounted = promo ? applyPromo(def.price, promo) : null;
 
+  const promoLabel = promo ? (promo.type === 'percent' ? `${promo.value}%` : `$${promo.value}`) : '';
   const priceDisplay = discounted !== null
-    ? `<span style="text-decoration: line-through; color: #aaa; margin-right: 6px;">${def.price}</span><strong style="color: #b45309;">${formatCurrency(discounted)}/mo</strong>`
+    ? `<span style="text-decoration: line-through; color: #aaa; margin-right: 6px;">${def.price}</span><strong style="color: #b45309;">${formatCurrency(discounted)}/mo</strong><span style="display:block; font-size:11px; color:#888; text-align:right;">${promoLabel} off for ${promo!.durationMonths} mo, then ${def.price}</span>`
     : `<strong style="color: #1F9839;">${def.price}</strong>`;
 
   return `
@@ -293,7 +294,8 @@ export function generateEmailText(state: AppState, plans: PlanDefinition[], addo
             if (promo) {
               const discounted = applyPromo(tier[key], promo);
               const unit = tier[key].includes('/yr') ? '/yr' : '/mo';
-              return `  ${PRICING_LABELS[key]}: ${formatCurrency(discounted)}${unit} (${promo.durationMonths} mo, then ${tier[key]})`;
+              const promoLbl = promo.type === 'percent' ? `${promo.value}%` : `$${promo.value}`;
+              return `  ${PRICING_LABELS[key]}: ${formatCurrency(discounted)}${unit} (${promoLbl} off for ${promo.durationMonths} mo, then ${tier[key]})`;
             }
             if (key === 'annualTotal') {
               return `  ${PRICING_LABELS[key]}: ${tier[key]} (${tier.annualMonthly})`;
@@ -329,7 +331,7 @@ export function generateEmailText(state: AppState, plans: PlanDefinition[], addo
         ].filter(Boolean).join('\n');
         const promo = block.promo ?? null;
         const priceLine = promo
-          ? `${def.name} — ${formatCurrency(applyPromo(def.price, promo))}/mo (${promo.durationMonths} mo, then ${def.price})`
+          ? `${def.name} — ${formatCurrency(applyPromo(def.price, promo))}/mo (${promo.type === 'percent' ? `${promo.value}%` : `$${promo.value}`} off for ${promo.durationMonths} mo, then ${def.price})`
           : `${def.name} — ${def.price}`;
         const validUntilAddon = promo && block.promoValidUntil
           ? `Promotional pricing valid until ${formatValidUntil(block.promoValidUntil)}.`
