@@ -14,15 +14,25 @@ export function Toolbar({ state, onOpenAdmin }: Props) {
   const { plans, addons } = useAdminData();
   const [copied, setCopied] = useState(false);
   const [copiedRich, setCopiedRich] = useState(false);
+  const [gmailOpened, setGmailOpened] = useState(false);
   const [previewing, setPreviewing] = useState(false);
 
   const hasBlocks = state.blocks.length > 0;
 
-  function handleOpenInGmail() {
-    const params = new URLSearchParams({ view: 'cm', fs: '1' });
+  async function handleOpenInGmail() {
+    // Auto-copy rich text to clipboard so the user can paste it straight into Gmail
+    const html = generateEmailHtml(state, plans, addons);
+    const plain = generateEmailText(state, plans, addons);
+    await copyRichTextToClipboard(html, plain);
+
+    // Open Gmail inbox with the compose overlay (no fs=1 → normal inbox + floating compose)
+    const params = new URLSearchParams({ view: 'cm' });
     if (state.header.to.trim()) params.set('to', state.header.to.trim());
     if (state.header.subject.trim()) params.set('su', state.header.subject.trim());
     window.open(`https://mail.google.com/mail/?${params.toString()}`, '_blank', 'noopener,noreferrer');
+
+    setGmailOpened(true);
+    setTimeout(() => setGmailOpened(false), 3000);
   }
 
   async function handleCopy() {
@@ -79,13 +89,20 @@ export function Toolbar({ state, onOpenAdmin }: Props) {
 
           <button
             onClick={handleOpenInGmail}
-            className="px-4 py-2 rounded-lg text-sm font-semibold border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 active:scale-95 transition-all flex items-center gap-1.5"
-            title="Open Gmail compose pre-filled with To and Subject"
+            disabled={!hasBlocks}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold border transition-all flex items-center gap-1.5 ${
+              gmailOpened
+                ? 'bg-blue-50 border-blue-300 text-blue-700'
+                : !hasBlocks
+                ? 'border-gray-200 text-gray-300 cursor-not-allowed bg-white'
+                : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50 active:scale-95'
+            }`}
+            title="Copies rich text to clipboard and opens Gmail compose — just paste (Ctrl+V) into the body"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.910 1.528-1.145C21.69 2.28 24 3.434 24 5.457z" fill="#EA4335"/>
+            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" className="flex-shrink-0">
+              <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.910 1.528-1.145C21.69 2.28 24 3.434 24 5.457z" fill={!hasBlocks ? '#d1d5db' : '#EA4335'}/>
             </svg>
-            Open in Gmail
+            {gmailOpened ? '✓ Copied — paste in Gmail!' : 'Open in Gmail'}
           </button>
 
           <button
