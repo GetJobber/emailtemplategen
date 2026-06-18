@@ -60,7 +60,6 @@ export function Sidebar({ dispatch }: Props) {
               id={`plan-${plan.id}`}
               label={plan.title}
               description={plan.tagline}
-              price={plan.tiers[0].monthlyNoCommitment}
               color={plan.color}
               blockFactory={() => ({
                 instanceId: generateId(),
