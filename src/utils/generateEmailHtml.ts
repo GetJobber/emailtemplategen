@@ -232,7 +232,7 @@ function renderCheckoutLinkBlock(block: CheckoutLinkBlock): string {
   <table width="100%" cellpadding="0" cellspacing="0" border="0">
     <tr>
       <td align="center" style="padding: 8px 0;">
-        <a href="${block.url}" target="_blank" style="display: inline-block; background-color: #1F9839; color: #ffffff; font-family: Arial, Helvetica, sans-serif; font-size: 15px; font-weight: bold; text-decoration: none; padding: 12px 28px; border-radius: 6px;">Preview Checkout Page</a>
+        <a href="${block.url}" target="_blank" style="display: inline-block; background-color: #9DC63F; color: #1D2D44; font-family: Arial, Helvetica, sans-serif; font-size: 15px; font-weight: bold; text-decoration: none; padding: 12px 28px; border-radius: 8px;">Preview Checkout Page</a>
       </td>
     </tr>
   </table>
