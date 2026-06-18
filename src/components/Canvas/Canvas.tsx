@@ -27,7 +27,7 @@ export function Canvas({ state, dispatch, insertIndex, isSidebarDrag }: Props) {
   return (
     <div className="flex-1 overflow-y-auto bg-gray-100 p-6">
       <div className="max-w-2xl mx-auto">
-        <EmailHeader header={state.header} dispatch={dispatch} />
+        <EmailHeader />
 
         {state.blocks.length === 0 ? (
           <div ref={setEmptyRef} className="text-center py-16 text-gray-400">
