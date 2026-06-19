@@ -1,17 +1,21 @@
 import { useState, useEffect, useRef, type Dispatch } from 'react';
-import type { CompareBlock as CompareBlockType, CompareSlot, PricingKey } from '../../types';
+import type { CompareBlock as CompareBlockType, CompareSlot, PricingKey, PromoConfig } from '../../types';
 import { ALL_PRICING_KEYS } from '../../types';
 import { useAdminData } from '../../contexts/AdminDataContext';
 import type { CanvasAction } from '../../store/canvasReducer';
 import { stripLinkSyntax } from '../../utils/generateEmailHtml';
 import { FeatureBuckets } from './FeatureBuckets';
 import { PromoModal, type PromoRow } from './PromoModal';
-import { PRICING_LABELS, formatValidUntil } from '../../utils/priceUtils';
+import { PRICING_LABELS, applyPromo, formatCurrency, formatValidUntil } from '../../utils/priceUtils';
 
 interface Props {
   block: CompareBlockType;
   dispatch: Dispatch<CanvasAction>;
 }
+
+// ---------------------------------------------------------------------------
+// SlotPicker dropdown
+// ---------------------------------------------------------------------------
 
 interface SlotPickerProps {
   onSelect: (slot: CompareSlot) => void;
@@ -115,452 +119,225 @@ function SlotPicker({ onSelect, onClose }: SlotPickerProps) {
   );
 }
 
-interface SlotCardProps {
-  slot: CompareSlot;
+// ---------------------------------------------------------------------------
+// PlanSlotCard
+// ---------------------------------------------------------------------------
+
+interface PlanSlotCardProps {
+  slot: Extract<CompareSlot, { kind: 'plan' }>;
+  slotIndex: number;
+  instanceId: string;
+  dispatch: Dispatch<CanvasAction>;
   onClear: () => void;
-  onEdit: () => void;
 }
 
-function SlotCard({ slot, onClear, onEdit }: SlotCardProps) {
-  const { plans, addons } = useAdminData();
+function PlanSlotCard({ slot, slotIndex, instanceId, dispatch, onClear }: PlanSlotCardProps) {
+  const { plans } = useAdminData();
+  const [showPromoModal, setShowPromoModal] = useState(false);
 
-  const hasPromo =
-    slot.kind === 'plan'
-      ? Object.keys(slot.promotions ?? {}).length > 0
-      : slot.promo != null;
+  const def = plans.find(p => p.id === slot.definitionId);
+  if (!def) return null;
 
-  if (slot.kind === 'plan') {
-    const def = plans.find(p => p.id === slot.definitionId);
-    if (!def) return null;
-    const tier = def.tiers.find(t => t.seats === slot.selectedSeats) ?? def.tiers[0];
-    const price = tier.monthlyNoCommitment;
-    const visibleFeatures = def.features.filter(f => slot.visibleFeatureIds.includes(f.id));
+  const selectedTier = def.tiers.find(t => t.seats === slot.selectedSeats) ?? def.tiers[0];
+  const visiblePricingKeys: PricingKey[] = slot.visiblePricingKeys ?? ALL_PRICING_KEYS;
+  const promotions = slot.promotions ?? {};
+  const hasAnyPromo = Object.keys(promotions).length > 0;
 
-    return (
-      <div className="rounded-lg overflow-hidden border border-gray-300 flex flex-col">
+  const promoRows: PromoRow[] = ALL_PRICING_KEYS.map(key => ({
+    key,
+    label: PRICING_LABELS[key],
+    originalPrice: selectedTier[key],
+  }));
+
+  // Header price: first visible pricing key
+  const headerKey = visiblePricingKeys[0] ?? 'monthlyNoCommitment';
+  const headerOriginal = selectedTier[headerKey];
+  const headerPromo = promotions[headerKey];
+  const headerDiscounted = headerPromo ? applyPromo(headerOriginal, headerPromo) : null;
+
+  function updateSlot(updates: Partial<typeof slot>) {
+    dispatch({
+      type: 'SET_COMPARE_SLOT',
+      instanceId,
+      slotIndex,
+      slot: { ...slot, ...updates },
+    });
+  }
+
+  function handleSetBucket(featureId: string, bucket: 'key' | 'included' | 'hidden') {
+    let newVisible = [...slot.visibleFeatureIds];
+    let newKey = [...slot.keyFeatureIds];
+    if (bucket === 'key') {
+      if (!newVisible.includes(featureId)) newVisible = [...newVisible, featureId];
+      if (!newKey.includes(featureId)) newKey = [...newKey, featureId];
+    } else if (bucket === 'included') {
+      if (!newVisible.includes(featureId)) newVisible = [...newVisible, featureId];
+      newKey = newKey.filter(id => id !== featureId);
+    } else {
+      newVisible = newVisible.filter(id => id !== featureId);
+      newKey = newKey.filter(id => id !== featureId);
+    }
+    updateSlot({ visibleFeatureIds: newVisible, keyFeatureIds: newKey });
+  }
+
+  return (
+    <>
+      <div className="rounded-lg overflow-hidden border border-gray-200 border-l-4" style={{ borderLeftColor: '#9DC63F' }}>
         {/* Header */}
-        <div className="relative px-3 py-2 bg-gray-500 text-white">
-          <div className="absolute top-1 right-1 flex items-center gap-0.5">
-            {hasPromo && (
-              <span className="w-2 h-2 rounded-full bg-amber-300 flex-shrink-0" title="Promotion active" />
+        <div className="px-4 py-3 bg-gray-50 flex justify-between items-start gap-2">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="w-2.5 h-2.5 rounded-full flex-shrink-0 mt-0.5" style={{ backgroundColor: def.color }} />
+            <span className="font-semibold text-gray-800 leading-snug">{def.title}</span>
+          </div>
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            {headerDiscounted !== null ? (
+              <div className="text-right">
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-gray-400 line-through">{headerOriginal}</span>
+                  <span className="text-sm font-bold text-amber-600">{formatCurrency(headerDiscounted)}/mo</span>
+                </div>
+              </div>
+            ) : (
+              <span className="text-sm font-bold text-jobber-dark">{headerOriginal}</span>
             )}
             <button
-              onClick={onEdit}
-              className="w-5 h-5 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white transition-colors"
-              title="Edit"
+              onClick={() => setShowPromoModal(true)}
+              className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full border transition-colors ${
+                hasAnyPromo
+                  ? 'bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100'
+                  : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
+              }`}
             >
-              <svg width="9" height="9" viewBox="0 0 10 10" fill="none">
-                <path d="M6.5 1.5l2 2L3 9H1V7L6.5 1.5z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                <path d="M1 5h8M5 1v8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
               </svg>
+              Promo
             </button>
             <button
               onClick={onClear}
-              className="w-5 h-5 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white text-xs font-bold transition-colors"
+              className="w-5 h-5 rounded-full bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-600 flex items-center justify-center text-sm font-bold transition-colors flex-shrink-0"
               title="Remove"
             >
               ×
             </button>
           </div>
-          <div className="flex items-center gap-1.5 pr-14">
-            <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: def.color }} />
-            <span className="font-semibold text-sm truncate">{def.title}</span>
-          </div>
-          <div className="text-xs opacity-75 mt-0.5">{tier.seats} {tier.seats === 1 ? 'user seat' : 'user seats'}</div>
-          <div className="text-xs opacity-80 font-bold mt-0.5">{price}</div>
         </div>
-        {/* Features */}
-        <div className="px-2 py-2 bg-white flex-1">
-          {visibleFeatures.map(f => (
-            <div key={f.id} className="flex items-start gap-1 py-0.5">
-              <span className="text-xs mt-0.5 text-gray-500">✓</span>
-              <span className="text-xs text-gray-600 leading-snug">{stripLinkSyntax(f.label)}</span>
+
+        {/* Seat selector */}
+        {def.tiers.length > 1 && (
+          <div className="px-4 py-2 border-t border-gray-100">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">User seats</p>
+            <div className="flex gap-1.5 flex-wrap">
+              {def.tiers.map(tier => (
+                <button
+                  key={tier.seats}
+                  onClick={() => updateSlot({ selectedSeats: tier.seats })}
+                  className="px-2.5 py-0.5 rounded-full text-xs font-semibold border transition-colors"
+                  style={
+                    selectedTier.seats === tier.seats
+                      ? { backgroundColor: def.color, borderColor: def.color, color: '#fff' }
+                      : { backgroundColor: '#fff', borderColor: def.color + '66', color: def.color }
+                  }
+                >
+                  {tier.seats} {tier.seats === 1 ? 'user' : 'users'}
+                </button>
+              ))}
             </div>
-          ))}
-          {visibleFeatures.length === 0 && (
-            <div className="text-xs text-gray-400 italic">No features shown</div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // addon
-  const def = addons.find(a => a.id === slot.definitionId);
-  if (!def) return null;
-  const visibleFeatures = def.features.filter(f => slot.visibleFeatureIds.includes(f.id));
-
-  return (
-    <div className="rounded-lg overflow-hidden border border-gray-300 flex flex-col">
-      {/* Header */}
-      <div className="relative px-3 py-2 bg-gray-500 text-white">
-        <div className="absolute top-1 right-1 flex items-center gap-0.5">
-          {hasPromo && (
-            <span className="w-2 h-2 rounded-full bg-amber-300 flex-shrink-0" title="Promotion active" />
-          )}
-          <button
-            onClick={onEdit}
-            className="w-5 h-5 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white transition-colors"
-            title="Edit"
-          >
-            <svg width="9" height="9" viewBox="0 0 10 10" fill="none">
-              <path d="M6.5 1.5l2 2L3 9H1V7L6.5 1.5z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
-            </svg>
-          </button>
-          <button
-            onClick={onClear}
-            className="w-5 h-5 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white text-xs font-bold transition-colors"
-            title="Remove"
-          >
-            ×
-          </button>
-        </div>
-        <div className="font-semibold text-sm pr-14 truncate">{def.name}</div>
-        <div className="text-xs opacity-80 font-bold mt-0.5">{def.price}</div>
-      </div>
-      {/* Features */}
-      <div className="px-2 py-2 bg-white flex-1">
-        {visibleFeatures.map(f => (
-          <div key={f.id} className="flex items-start gap-1 py-0.5">
-            <span className="text-xs mt-0.5 text-gray-500">✓</span>
-            <span className="text-xs text-gray-600 leading-snug">{stripLinkSyntax(f.label)}</span>
           </div>
-        ))}
-        {visibleFeatures.length === 0 && (
-          <div className="text-xs text-gray-400 italic">No features shown</div>
         )}
-      </div>
-    </div>
-  );
-}
 
-// ---------------------------------------------------------------------------
-// CompareSlotEditorModal
-// ---------------------------------------------------------------------------
+        {/* Tagline */}
+        <div className="px-4 pt-2 pb-1 text-sm text-gray-600">{stripLinkSyntax(def.tagline)}</div>
 
-interface EditorModalProps {
-  slot: CompareSlot;
-  onSave: (updated: CompareSlot) => void;
-  onClose: () => void;
-}
+        {/* Pricing rows */}
+        <div className="px-4 py-3 border-t border-gray-100">
+          <div className="space-y-1.5">
+            {ALL_PRICING_KEYS.map(key => {
+              const isVisible = visiblePricingKeys.includes(key);
+              const promo = promotions[key];
+              const original = selectedTier[key];
+              const discounted = promo ? applyPromo(original, promo) : null;
+              const unit = original.includes('/yr') ? '/yr' : '/mo';
+              const isAnnualTotal = key === 'annualTotal';
 
-function CompareSlotEditorModal({ slot, onSave, onClose }: EditorModalProps) {
-  const { plans, addons } = useAdminData();
-
-  // ---- local state ----
-  const [visibleFeatureIds, setVisibleFeatureIds] = useState<string[]>(slot.visibleFeatureIds);
-  const [keyFeatureIds, setKeyFeatureIds] = useState<string[]>(slot.keyFeatureIds);
-  const [showPromoModal, setShowPromoModal] = useState(false);
-
-  // plan-only state
-  const [selectedSeats, setSelectedSeats] = useState<number>(
-    slot.kind === 'plan' ? slot.selectedSeats : 0
-  );
-  const [visiblePricingKeys, setVisiblePricingKeys] = useState<PricingKey[]>(
-    slot.kind === 'plan' ? (slot.visiblePricingKeys ?? ['monthlyNoCommitment']) : []
-  );
-  const [promotions, setPromotions] = useState<Partial<Record<PricingKey, import('../../types').PromoConfig>>>(
-    slot.kind === 'plan' ? (slot.promotions ?? {}) : {}
-  );
-  const [promoValidUntil, setPromoValidUntil] = useState<string | undefined>(
-    slot.kind === 'plan' ? slot.promoValidUntil : undefined
-  );
-
-  // addon-only state
-  const [addonPromo, setAddonPromo] = useState<import('../../types').PromoConfig | null>(
-    slot.kind === 'addon' ? (slot.promo ?? null) : null
-  );
-  const [addonPromoValidUntil, setAddonPromoValidUntil] = useState<string | undefined>(
-    slot.kind === 'addon' ? slot.promoValidUntil : undefined
-  );
-
-  // ---- close on Escape ----
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !showPromoModal) onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose, showPromoModal]);
-
-  function handleSetBucket(featureId: string, bucket: 'key' | 'included' | 'hidden') {
-    if (bucket === 'key') {
-      setVisibleFeatureIds(ids => ids.includes(featureId) ? ids : [...ids, featureId]);
-      setKeyFeatureIds(ids => ids.includes(featureId) ? ids : [...ids, featureId]);
-    } else if (bucket === 'included') {
-      setVisibleFeatureIds(ids => ids.includes(featureId) ? ids : [...ids, featureId]);
-      setKeyFeatureIds(ids => ids.filter(id => id !== featureId));
-    } else {
-      setVisibleFeatureIds(ids => ids.filter(id => id !== featureId));
-      setKeyFeatureIds(ids => ids.filter(id => id !== featureId));
-    }
-  }
-
-  function handleSave() {
-    if (slot.kind === 'plan') {
-      onSave({
-        kind: 'plan',
-        definitionId: slot.definitionId,
-        selectedSeats,
-        visibleFeatureIds,
-        keyFeatureIds,
-        visiblePricingKeys,
-        promotions,
-        promoValidUntil,
-      });
-    } else {
-      onSave({
-        kind: 'addon',
-        definitionId: slot.definitionId,
-        visibleFeatureIds,
-        keyFeatureIds,
-        promo: addonPromo,
-        promoValidUntil: addonPromoValidUntil,
-      });
-    }
-    onClose();
-  }
-
-  // ---- derive definition info ----
-  if (slot.kind === 'plan') {
-    const def = plans.find(p => p.id === slot.definitionId);
-    if (!def) return null;
-
-    const selectedTier = def.tiers.find(t => t.seats === selectedSeats) ?? def.tiers[0];
-    const hasAnyPromo = Object.keys(promotions).length > 0;
-
-    const promoRows: PromoRow[] = ALL_PRICING_KEYS.map(key => ({
-      key,
-      label: PRICING_LABELS[key],
-      originalPrice: selectedTier[key],
-    }));
-
-    return (
-      <>
-        <div
-          onClick={e => { if (e.target === e.currentTarget) onClose(); }}
-          className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center"
-        >
-          <div className="bg-white rounded-xl shadow-2xl flex flex-col w-full max-w-lg mx-4 overflow-hidden" style={{ maxHeight: '90vh' }}>
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 flex-shrink-0">
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: def.color }} />
-                <h2 className="text-sm font-bold text-gray-800">{def.title}</h2>
-              </div>
-              <button
-                onClick={onClose}
-                className="w-7 h-7 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-700 text-lg font-light"
-              >×</button>
-            </div>
-
-            {/* Scrollable body */}
-            <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
-
-              {/* Seat selector */}
-              {def.tiers.length > 1 && (
-                <div className="px-5 py-4">
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">User seats</p>
-                  <div className="flex gap-1.5 flex-wrap">
-                    {def.tiers.map(tier => (
-                      <button
-                        key={tier.seats}
-                        onClick={() => setSelectedSeats(tier.seats)}
-                        className="px-3 py-1 rounded-full text-xs font-semibold border transition-colors"
-                        style={
-                          selectedSeats === tier.seats
-                            ? { backgroundColor: def.color, borderColor: def.color, color: '#fff' }
-                            : { backgroundColor: '#fff', borderColor: def.color + '66', color: def.color }
-                        }
-                      >
-                        {tier.seats} {tier.seats === 1 ? 'user' : 'users'}
-                      </button>
-                    ))}
+              return (
+                <div key={key} className="flex items-start justify-between gap-2">
+                  <label className="flex items-center gap-1.5 cursor-pointer mt-0.5">
+                    <input
+                      type="checkbox"
+                      className="w-3.5 h-3.5 accent-jobber"
+                      checked={isVisible}
+                      onChange={() => {
+                        const newKeys = isVisible
+                          ? visiblePricingKeys.filter(k => k !== key)
+                          : [...visiblePricingKeys, key];
+                        updateSlot({ visiblePricingKeys: newKeys });
+                      }}
+                    />
+                    <span className={`text-xs ${isVisible ? 'text-gray-500' : 'text-gray-300'}`}>
+                      {PRICING_LABELS[key]}
+                    </span>
+                  </label>
+                  <div className="text-right flex-shrink-0">
+                    {discounted !== null ? (
+                      <>
+                        <div className="flex items-center gap-1 justify-end">
+                          <span className="text-xs text-gray-400 line-through">{original}</span>
+                          <span className="text-xs font-bold text-amber-600">{formatCurrency(discounted)}{unit}</span>
+                        </div>
+                        {isAnnualTotal && (
+                          <div className="text-xs text-amber-500">({formatCurrency(Math.round((discounted / 12) * 100) / 100)}/mo)</div>
+                        )}
+                        <div className="text-xs text-gray-400">
+                          {promo!.type === 'percent' ? `${promo!.value}%` : `$${promo!.value}`} off for {promo!.durationMonths} mo
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-xs font-semibold" style={{ color: isVisible ? def.color : '#d1d5db' }}>
+                          {original}
+                        </span>
+                        {isAnnualTotal && (
+                          <div className={`text-xs ${isVisible ? 'text-gray-400' : 'text-gray-200'}`}>
+                            ({selectedTier.annualMonthly})
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                 </div>
-              )}
-
-              {/* Pricing visibility */}
-              <div className="px-5 py-4">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Pricing visibility</p>
-                <div className="space-y-1.5">
-                  {ALL_PRICING_KEYS.map(key => (
-                    <label key={key} className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="w-3.5 h-3.5 accent-jobber"
-                        checked={visiblePricingKeys.includes(key)}
-                        onChange={() => {
-                          setVisiblePricingKeys(keys =>
-                            keys.includes(key) ? keys.filter(k => k !== key) : [...keys, key]
-                          );
-                        }}
-                      />
-                      <span className="text-xs text-gray-600">{PRICING_LABELS[key]}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Promotions */}
-              <div className="px-5 py-4">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Promotion</p>
-                  <button
-                    onClick={() => setShowPromoModal(true)}
-                    className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full border transition-colors ${
-                      hasAnyPromo
-                        ? 'bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100'
-                        : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
-                    }`}
-                  >
-                    <svg width="10" height="10" viewBox="0 0 11 11" fill="none">
-                      <path d="M1 5.5h9M5.5 1v9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                    </svg>
-                    {hasAnyPromo ? 'Edit Promotion' : 'Add Promotion'}
-                  </button>
-                </div>
-                {hasAnyPromo && promoValidUntil && (
-                  <p className="text-xs text-amber-700 mt-2">
-                    Promotional pricing valid until {formatValidUntil(promoValidUntil)}.
-                  </p>
-                )}
-              </div>
-
-              {/* Features */}
-              <div className="px-5 py-4">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Features</p>
-                <FeatureBuckets
-                  allFeatures={def.features}
-                  visibleFeatureIds={visibleFeatureIds}
-                  keyFeatureIds={keyFeatureIds}
-                  onSetBucket={handleSetBucket}
-                />
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="flex justify-end gap-2 px-5 py-3.5 border-t border-gray-200 flex-shrink-0 bg-gray-50">
-              <button
-                onClick={onClose}
-                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                className="px-4 py-2 text-sm font-semibold bg-jobber text-jobber-dark rounded-lg hover:opacity-90 transition-colors"
-              >
-                Save
-              </button>
-            </div>
+              );
+            })}
           </div>
+          {hasAnyPromo && slot.promoValidUntil && (
+            <p className="text-xs text-amber-700 mt-2">
+              Promo valid until {formatValidUntil(slot.promoValidUntil)}.
+            </p>
+          )}
         </div>
 
-        {showPromoModal && (
-          <PromoModal
-            title={`${def.title} — ${selectedTier.seats} ${selectedTier.seats === 1 ? 'user' : 'users'}`}
-            rows={promoRows}
-            initialPromos={promotions}
-            initialValidUntil={promoValidUntil}
-            onSave={(promos, validUntil) => {
-              setPromotions(promos as Partial<Record<PricingKey, import('../../types').PromoConfig>>);
-              setPromoValidUntil(validUntil ?? undefined);
-            }}
-            onClose={() => setShowPromoModal(false)}
+        {/* Feature buckets */}
+        <div className="px-4 py-3 border-t border-gray-100">
+          <FeatureBuckets
+            allFeatures={def.features}
+            visibleFeatureIds={slot.visibleFeatureIds}
+            keyFeatureIds={slot.keyFeatureIds}
+            onSetBucket={handleSetBucket}
           />
-        )}
-      </>
-    );
-  }
-
-  // addon
-  const def = addons.find(a => a.id === slot.definitionId);
-  if (!def) return null;
-
-  const hasPromo = addonPromo != null;
-
-  return (
-    <>
-      <div
-        onClick={e => { if (e.target === e.currentTarget) onClose(); }}
-        className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center"
-      >
-        <div className="bg-white rounded-xl shadow-2xl flex flex-col w-full max-w-lg mx-4 overflow-hidden" style={{ maxHeight: '90vh' }}>
-          {/* Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 flex-shrink-0">
-            <h2 className="text-sm font-bold text-gray-800">{def.name}</h2>
-            <button
-              onClick={onClose}
-              className="w-7 h-7 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-700 text-lg font-light"
-            >×</button>
-          </div>
-
-          {/* Scrollable body */}
-          <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
-
-            {/* Promotions */}
-            <div className="px-5 py-4">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Promotion</p>
-                <button
-                  onClick={() => setShowPromoModal(true)}
-                  className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full border transition-colors ${
-                    hasPromo
-                      ? 'bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100'
-                      : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
-                  }`}
-                >
-                  <svg width="10" height="10" viewBox="0 0 11 11" fill="none">
-                    <path d="M1 5.5h9M5.5 1v9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                  </svg>
-                  {hasPromo ? 'Edit Promotion' : 'Add Promotion'}
-                </button>
-              </div>
-              {hasPromo && addonPromoValidUntil && (
-                <p className="text-xs text-amber-700 mt-2">
-                  Promotional pricing valid until {formatValidUntil(addonPromoValidUntil)}.
-                </p>
-              )}
-            </div>
-
-            {/* Features */}
-            <div className="px-5 py-4">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Features</p>
-              <FeatureBuckets
-                allFeatures={def.features}
-                visibleFeatureIds={visibleFeatureIds}
-                keyFeatureIds={keyFeatureIds}
-                onSetBucket={handleSetBucket}
-              />
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div className="flex justify-end gap-2 px-5 py-3.5 border-t border-gray-200 flex-shrink-0 bg-gray-50">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              className="px-4 py-2 text-sm font-semibold bg-jobber text-jobber-dark rounded-lg hover:opacity-90 transition-colors"
-            >
-              Save
-            </button>
-          </div>
         </div>
       </div>
 
       {showPromoModal && (
         <PromoModal
-          title={def.name}
-          rows={[{ key: 'price', label: def.name, originalPrice: def.price }]}
-          initialPromos={addonPromo ? { price: addonPromo } : {}}
-          initialValidUntil={addonPromoValidUntil}
+          title={`${def.title} — ${selectedTier.seats} ${selectedTier.seats === 1 ? 'user' : 'users'}`}
+          rows={promoRows}
+          initialPromos={promotions}
+          initialValidUntil={slot.promoValidUntil}
           onSave={(promos, validUntil) => {
-            const p = promos['price'] ?? null;
-            setAddonPromo(p as import('../../types').PromoConfig | null);
-            setAddonPromoValidUntil(validUntil ?? undefined);
+            updateSlot({
+              promotions: promos as Partial<Record<PricingKey, PromoConfig>>,
+              promoValidUntil: validUntil ?? undefined,
+            });
           }}
           onClose={() => setShowPromoModal(false)}
         />
@@ -570,76 +347,226 @@ function CompareSlotEditorModal({ slot, onSave, onClose }: EditorModalProps) {
 }
 
 // ---------------------------------------------------------------------------
+// AddonSlotCard
+// ---------------------------------------------------------------------------
+
+interface AddonSlotCardProps {
+  slot: Extract<CompareSlot, { kind: 'addon' }>;
+  slotIndex: number;
+  instanceId: string;
+  dispatch: Dispatch<CanvasAction>;
+  onClear: () => void;
+}
+
+function AddonSlotCard({ slot, slotIndex, instanceId, dispatch, onClear }: AddonSlotCardProps) {
+  const { addons } = useAdminData();
+  const [showPromoModal, setShowPromoModal] = useState(false);
+
+  const def = addons.find(a => a.id === slot.definitionId);
+  if (!def) return null;
+
+  const promo = slot.promo ?? null;
+  const discounted = promo ? applyPromo(def.price, promo) : null;
+
+  function updateSlot(updates: Partial<typeof slot>) {
+    dispatch({
+      type: 'SET_COMPARE_SLOT',
+      instanceId,
+      slotIndex,
+      slot: { ...slot, ...updates },
+    });
+  }
+
+  function handleSetBucket(featureId: string, bucket: 'key' | 'included' | 'hidden') {
+    let newVisible = [...slot.visibleFeatureIds];
+    let newKey = [...slot.keyFeatureIds];
+    if (bucket === 'key') {
+      if (!newVisible.includes(featureId)) newVisible = [...newVisible, featureId];
+      if (!newKey.includes(featureId)) newKey = [...newKey, featureId];
+    } else if (bucket === 'included') {
+      if (!newVisible.includes(featureId)) newVisible = [...newVisible, featureId];
+      newKey = newKey.filter(id => id !== featureId);
+    } else {
+      newVisible = newVisible.filter(id => id !== featureId);
+      newKey = newKey.filter(id => id !== featureId);
+    }
+    updateSlot({ visibleFeatureIds: newVisible, keyFeatureIds: newKey });
+  }
+
+  return (
+    <>
+      <div className="rounded-lg overflow-hidden border border-gray-200 border-l-4" style={{ borderLeftColor: '#9DC63F' }}>
+        {/* Header */}
+        <div className="px-4 py-3 bg-gray-50 flex justify-between items-start gap-2">
+          <span className="font-semibold text-gray-800 leading-snug">{def.name}</span>
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            {discounted !== null ? (
+              <div className="text-right">
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-gray-400 line-through">{def.price}</span>
+                  <span className="text-sm font-bold text-amber-600">{formatCurrency(discounted)}/mo</span>
+                </div>
+                <div className="text-xs text-gray-400">
+                  {promo!.type === 'percent' ? `${promo!.value}%` : `$${promo!.value}`} off for {promo!.durationMonths} mo, then {def.price}
+                </div>
+              </div>
+            ) : (
+              <span className="text-sm font-bold text-jobber-dark">{def.price}</span>
+            )}
+            <button
+              onClick={() => setShowPromoModal(true)}
+              className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full border transition-colors ${
+                promo
+                  ? 'bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100'
+                  : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
+              }`}
+            >
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                <path d="M1 5h8M5 1v8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+              Promo
+            </button>
+            <button
+              onClick={onClear}
+              className="w-5 h-5 rounded-full bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-600 flex items-center justify-center text-sm font-bold transition-colors flex-shrink-0"
+              title="Remove"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+
+        {promo && slot.promoValidUntil && (
+          <div className="px-4 pt-1.5">
+            <p className="text-xs text-amber-700">
+              Promo valid until {formatValidUntil(slot.promoValidUntil)}.
+            </p>
+          </div>
+        )}
+
+        <div className="px-4 pt-2 pb-1 text-sm text-gray-600">{stripLinkSyntax(def.description)}</div>
+
+        <div className="px-4 py-3 border-t border-gray-100">
+          <FeatureBuckets
+            allFeatures={def.features}
+            visibleFeatureIds={slot.visibleFeatureIds}
+            keyFeatureIds={slot.keyFeatureIds}
+            onSetBucket={handleSetBucket}
+          />
+        </div>
+      </div>
+
+      {showPromoModal && (
+        <PromoModal
+          title={def.name}
+          rows={[{ key: 'price', label: def.name, originalPrice: def.price }]}
+          initialPromos={promo ? { price: promo } : {}}
+          initialValidUntil={slot.promoValidUntil}
+          onSave={(promos, validUntil) => {
+            const p = (promos['price'] ?? null) as PromoConfig | null;
+            updateSlot({
+              promo: p,
+              promoValidUntil: validUntil ?? undefined,
+            });
+          }}
+          onClose={() => setShowPromoModal(false)}
+        />
+      )}
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// SlotCard dispatcher
+// ---------------------------------------------------------------------------
+
+interface SlotCardProps {
+  slot: CompareSlot;
+  slotIndex: number;
+  instanceId: string;
+  dispatch: Dispatch<CanvasAction>;
+  onClear: () => void;
+}
+
+function SlotCard({ slot, slotIndex, instanceId, dispatch, onClear }: SlotCardProps) {
+  if (slot.kind === 'plan') {
+    return (
+      <PlanSlotCard
+        slot={slot}
+        slotIndex={slotIndex}
+        instanceId={instanceId}
+        dispatch={dispatch}
+        onClear={onClear}
+      />
+    );
+  }
+  return (
+    <AddonSlotCard
+      slot={slot}
+      slotIndex={slotIndex}
+      instanceId={instanceId}
+      dispatch={dispatch}
+      onClear={onClear}
+    />
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main CompareBlock component
 // ---------------------------------------------------------------------------
 
 export function CompareBlock({ block, dispatch }: Props) {
   const [openPickerIndex, setOpenPickerIndex] = useState<number | null>(null);
-  const [editingSlotIndex, setEditingSlotIndex] = useState<number | null>(null);
 
   function setSlot(slotIndex: number, slot: CompareSlot | null) {
     dispatch({ type: 'SET_COMPARE_SLOT', instanceId: block.instanceId, slotIndex, slot });
   }
 
-  const editingSlot =
-    editingSlotIndex !== null ? block.slots[editingSlotIndex] ?? null : null;
-
   return (
-    <>
-      <div className="p-3">
-        <div className="rounded-lg border border-gray-200 bg-gray-50">
-          {/* Block header */}
-          <div className="px-4 py-2 border-b border-gray-200 bg-white rounded-t-lg flex items-center gap-2">
-            <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Compare</span>
-            <span className="text-xs text-gray-400">— up to 3 plans or add-ons side by side</span>
-          </div>
+    <div className="p-3">
+      <div className="rounded-lg border border-gray-200 bg-gray-50">
+        {/* Block header */}
+        <div className="px-4 py-2 border-b border-gray-200 bg-white rounded-t-lg flex items-center gap-2">
+          <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Compare</span>
+          <span className="text-xs text-gray-400">— up to 3 plans or add-ons side by side</span>
+        </div>
 
-          {/* Slots */}
-          <div className="flex gap-2 p-3">
-            {block.slots.map((slot, i) => (
-              <div key={i} className="flex-1 relative">
-                {slot === null ? (
-                  <>
-                    <button
-                      onClick={() => setOpenPickerIndex(openPickerIndex === i ? null : i)}
-                      className="w-full h-24 rounded-lg border-2 border-dashed border-jobber/50 hover:border-jobber flex items-center justify-center transition-colors bg-white hover:bg-jobber/5 group"
-                      title="Add item to compare"
-                    >
-                      <span className="text-2xl font-light text-jobber/50 group-hover:text-jobber transition-colors">+</span>
-                    </button>
-                    {openPickerIndex === i && (
-                      <SlotPicker
-                        onSelect={slot => {
-                          setSlot(i, slot);
-                          setOpenPickerIndex(null);
-                        }}
-                        onClose={() => setOpenPickerIndex(null)}
-                      />
-                    )}
-                  </>
-                ) : (
-                  <SlotCard
-                    slot={slot}
-                    onClear={() => setSlot(i, null)}
-                    onEdit={() => setEditingSlotIndex(i)}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
+        {/* Slots */}
+        <div className="flex gap-3 p-3 items-start">
+          {block.slots.map((slot, i) => (
+            <div key={i} className="flex-1 relative min-w-0">
+              {slot === null ? (
+                <>
+                  <button
+                    onClick={() => setOpenPickerIndex(openPickerIndex === i ? null : i)}
+                    className="w-full h-24 rounded-lg border-2 border-dashed border-jobber/50 hover:border-jobber flex items-center justify-center transition-colors bg-white hover:bg-jobber/5 group"
+                    title="Add item to compare"
+                  >
+                    <span className="text-2xl font-light text-jobber/50 group-hover:text-jobber transition-colors">+</span>
+                  </button>
+                  {openPickerIndex === i && (
+                    <SlotPicker
+                      onSelect={selected => {
+                        setSlot(i, selected);
+                        setOpenPickerIndex(null);
+                      }}
+                      onClose={() => setOpenPickerIndex(null)}
+                    />
+                  )}
+                </>
+              ) : (
+                <SlotCard
+                  slot={slot}
+                  slotIndex={i}
+                  instanceId={block.instanceId}
+                  dispatch={dispatch}
+                  onClear={() => setSlot(i, null)}
+                />
+              )}
+            </div>
+          ))}
         </div>
       </div>
-
-      {editingSlotIndex !== null && editingSlot !== null && (
-        <CompareSlotEditorModal
-          slot={editingSlot}
-          onSave={updated => {
-            setSlot(editingSlotIndex, updated);
-            setEditingSlotIndex(null);
-          }}
-          onClose={() => setEditingSlotIndex(null)}
-        />
-      )}
-    </>
+    </div>
   );
 }
