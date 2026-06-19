@@ -1,24 +1,26 @@
-import type { AppState, CanvasBlock, EmailHeader, PricingKey, PromoConfig } from '../types';
+import type { AppState, CanvasBlock, CompareSlot, EmailHeader, PricingKey, PromoConfig } from '../types';
 
 export type CanvasAction =
   | { type: 'ADD_BLOCK'; block: CanvasBlock }
+  | { type: 'ADD_BLOCK_AT'; block: CanvasBlock; index: number }
   | { type: 'REMOVE_BLOCK'; instanceId: string }
   | { type: 'REORDER_BLOCKS'; orderedIds: string[] }
   | { type: 'TOGGLE_FEATURE'; instanceId: string; featureId: string }
+  | { type: 'SET_FEATURE_BUCKET'; instanceId: string; featureId: string; bucket: 'key' | 'included' | 'hidden' }
   | { type: 'SET_PLAN_SEATS'; instanceId: string; seats: number }
   | { type: 'TOGGLE_PRICING_KEY'; instanceId: string; key: PricingKey }
-  | { type: 'SET_PLAN_PROMOTIONS'; instanceId: string; promotions: Partial<Record<PricingKey, PromoConfig>> }
-  | { type: 'SET_ADDON_PROMO'; instanceId: string; promo: PromoConfig | null }
+  | { type: 'SET_PLAN_PROMOTIONS'; instanceId: string; promotions: Partial<Record<PricingKey, PromoConfig>>; validUntil: string | null }
+  | { type: 'SET_ADDON_PROMO'; instanceId: string; promo: PromoConfig | null; validUntil: string | null }
   | { type: 'UPDATE_TEXT'; instanceId: string; content: string }
   | { type: 'SET_CHECKOUT_URL'; instanceId: string; url: string }
+  | { type: 'SET_COMPARE_SLOT'; instanceId: string; slotIndex: number; slot: CompareSlot | null }
+  | { type: 'REORDER_COMPARE_SLOTS'; instanceId: string; slots: (CompareSlot | null)[] }
   | { type: 'SET_HEADER'; field: keyof EmailHeader; value: string };
-
-const GREETING_CONTENT = '{{#if Recipient.FirstName}}Hey {{Recipient.FirstName}},{{else}}Hey there!{{/if}}';
 
 export const initialState: AppState = {
   header: { to: '', subject: '' },
   blocks: [
-    { instanceId: 'greeting-initial', kind: 'text', content: GREETING_CONTENT, displayLabel: 'Greeting Text' },
+    { instanceId: 'greeting-initial', kind: 'text', content: '', displayLabel: 'Greeting Text' },
   ],
 };
 
@@ -26,6 +28,12 @@ export function canvasReducer(state: AppState, action: CanvasAction): AppState {
   switch (action.type) {
     case 'ADD_BLOCK':
       return { ...state, blocks: [...state.blocks, action.block] };
+
+    case 'ADD_BLOCK_AT': {
+      const blocks = [...state.blocks];
+      blocks.splice(action.index, 0, action.block);
+      return { ...state, blocks };
+    }
 
     case 'REMOVE_BLOCK':
       return { ...state, blocks: state.blocks.filter(b => b.instanceId !== action.instanceId) };
@@ -48,6 +56,42 @@ export function canvasReducer(state: AppState, action: CanvasAction): AppState {
             visibleFeatureIds: has
               ? b.visibleFeatureIds.filter(id => id !== action.featureId)
               : [...b.visibleFeatureIds, action.featureId],
+          };
+        }),
+      };
+    }
+
+    case 'SET_FEATURE_BUCKET': {
+      return {
+        ...state,
+        blocks: state.blocks.map(b => {
+          if (b.instanceId !== action.instanceId) return b;
+          if (b.kind !== 'plan' && b.kind !== 'addon') return b;
+          const { featureId, bucket } = action;
+          const keyIds = b.keyFeatureIds ?? [];
+          if (bucket === 'key') {
+            return {
+              ...b,
+              visibleFeatureIds: b.visibleFeatureIds.includes(featureId)
+                ? b.visibleFeatureIds
+                : [...b.visibleFeatureIds, featureId],
+              keyFeatureIds: keyIds.includes(featureId) ? keyIds : [...keyIds, featureId],
+            };
+          }
+          if (bucket === 'included') {
+            return {
+              ...b,
+              visibleFeatureIds: b.visibleFeatureIds.includes(featureId)
+                ? b.visibleFeatureIds
+                : [...b.visibleFeatureIds, featureId],
+              keyFeatureIds: keyIds.filter(id => id !== featureId),
+            };
+          }
+          // hidden
+          return {
+            ...b,
+            visibleFeatureIds: b.visibleFeatureIds.filter(id => id !== featureId),
+            keyFeatureIds: keyIds.filter(id => id !== featureId),
           };
         }),
       };
@@ -94,7 +138,7 @@ export function canvasReducer(state: AppState, action: CanvasAction): AppState {
         ...state,
         blocks: state.blocks.map(b =>
           b.instanceId === action.instanceId && b.kind === 'plan'
-            ? { ...b, promotions: action.promotions }
+            ? { ...b, promotions: action.promotions, promoValidUntil: action.validUntil ?? undefined }
             : b
         ),
       };
@@ -105,7 +149,7 @@ export function canvasReducer(state: AppState, action: CanvasAction): AppState {
         ...state,
         blocks: state.blocks.map(b =>
           b.instanceId === action.instanceId && b.kind === 'addon'
-            ? { ...b, promo: action.promo }
+            ? { ...b, promo: action.promo, promoValidUntil: action.validUntil ?? undefined }
             : b
         ),
       };
@@ -117,6 +161,26 @@ export function canvasReducer(state: AppState, action: CanvasAction): AppState {
         blocks: state.blocks.map(b =>
           b.instanceId === action.instanceId && b.kind === 'checkout'
             ? { ...b, url: action.url }
+            : b
+        ),
+      };
+
+    case 'SET_COMPARE_SLOT':
+      return {
+        ...state,
+        blocks: state.blocks.map(b =>
+          b.instanceId === action.instanceId && b.kind === 'compare'
+            ? { ...b, slots: b.slots.map((s, i) => i === action.slotIndex ? action.slot : s) }
+            : b
+        ),
+      };
+
+    case 'REORDER_COMPARE_SLOTS':
+      return {
+        ...state,
+        blocks: state.blocks.map(b =>
+          b.instanceId === action.instanceId && b.kind === 'compare'
+            ? { ...b, slots: action.slots }
             : b
         ),
       };

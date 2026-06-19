@@ -72,8 +72,8 @@ export function CheckoutLinkBlock({ block, dispatch }: Props) {
             href={block.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-block px-6 py-2.5 rounded-md text-sm font-bold text-white no-underline"
-            style={{ backgroundColor: '#1F9839' }}
+            className="inline-block px-6 py-2.5 rounded-lg text-sm font-bold no-underline"
+            style={{ backgroundColor: '#9DC63F', color: '#1D2D44' }}
             onClick={e => e.preventDefault()}
           >
             Preview Checkout Page

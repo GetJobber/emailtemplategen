@@ -28,14 +28,13 @@ export interface AddonDefinition {
   features: PlanFeature[];
 }
 
-export type BlockKind = 'plan' | 'addon' | 'signature' | 'text' | 'checkout';
+export type BlockKind = 'plan' | 'addon' | 'signature' | 'text' | 'checkout' | 'compare';
 
-export type PricingKey = 'monthlyNoCommitment' | 'monthlyAnnual' | 'annualMonthly' | 'annualTotal';
+export type PricingKey = 'monthlyNoCommitment' | 'monthlyAnnual' | 'annualTotal';
 
 export const ALL_PRICING_KEYS: PricingKey[] = [
   'monthlyNoCommitment',
   'monthlyAnnual',
-  'annualMonthly',
   'annualTotal',
 ];
 
@@ -55,15 +54,19 @@ export interface PlanBlock extends BaseBlock {
   definitionId: string;
   selectedSeats: number;
   visibleFeatureIds: string[];
+  keyFeatureIds: string[];
   visiblePricingKeys: PricingKey[];
   promotions: Partial<Record<PricingKey, PromoConfig>>;
+  promoValidUntil?: string;
 }
 
 export interface AddonBlock extends BaseBlock {
   kind: 'addon';
   definitionId: string;
   visibleFeatureIds: string[];
+  keyFeatureIds: string[];
   promo: PromoConfig | null;
+  promoValidUntil?: string;
 }
 
 export interface SignatureBlock extends BaseBlock {
@@ -81,7 +84,32 @@ export interface CheckoutLinkBlock extends BaseBlock {
   url: string;
 }
 
-export type CanvasBlock = PlanBlock | AddonBlock | SignatureBlock | TextBlock | CheckoutLinkBlock;
+export type CompareSlot =
+  | {
+      kind: 'plan';
+      definitionId: string;
+      selectedSeats: number;
+      visibleFeatureIds: string[];
+      keyFeatureIds: string[];
+      visiblePricingKeys: PricingKey[];
+      promotions: Partial<Record<PricingKey, PromoConfig>>;
+      promoValidUntil?: string;
+    }
+  | {
+      kind: 'addon';
+      definitionId: string;
+      visibleFeatureIds: string[];
+      keyFeatureIds: string[];
+      promo: PromoConfig | null;
+      promoValidUntil?: string;
+    };
+
+export interface CompareBlock extends BaseBlock {
+  kind: 'compare';
+  slots: (CompareSlot | null)[]; // always length 3
+}
+
+export type CanvasBlock = PlanBlock | AddonBlock | SignatureBlock | TextBlock | CheckoutLinkBlock | CompareBlock;
 
 export interface EmailHeader {
   to: string;
