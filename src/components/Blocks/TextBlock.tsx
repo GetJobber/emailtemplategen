@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { Dispatch } from 'react';
 import type { TextBlock as TextBlockType } from '../../types';
 import type { CanvasAction } from '../../store/canvasReducer';
@@ -23,6 +23,15 @@ export function TextBlock({ block, dispatch }: Props) {
   const [linkUrl, setLinkUrl] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const savedSelectionRef = useRef<{ start: number; end: number } | null>(null);
+
+  // Auto-expand textarea to fit content
+  useEffect(() => {
+    const ta = textareaRef.current;
+    if (ta) {
+      ta.style.height = 'auto';
+      ta.style.height = `${ta.scrollHeight}px`;
+    }
+  }, [block.content]);
 
   function handleLinkButtonClick() {
     const ta = textareaRef.current;
@@ -94,7 +103,7 @@ export function TextBlock({ block, dispatch }: Props) {
 
       <textarea
         ref={textareaRef}
-        className="w-full text-sm text-gray-800 border border-gray-200 rounded p-2 resize-none focus:outline-none focus:ring-2 focus:ring-jobber min-h-[80px]"
+        className="w-full text-sm text-gray-800 border border-gray-200 rounded p-2 resize-none focus:outline-none focus:ring-2 focus:ring-jobber min-h-[80px] overflow-hidden"
         placeholder="Type your message here…"
         value={block.content}
         onChange={e =>
