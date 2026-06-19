@@ -178,16 +178,24 @@ function PlanSlotCard({ slot, slotIndex, instanceId, dispatch, onClear }: PlanSl
     <>
       <div className="rounded-lg overflow-hidden border border-gray-200 border-l-4" style={{ borderLeftColor: '#9DC63F' }}>
         {/* Header */}
-        <div className="px-3 py-3 bg-gray-50 flex justify-between items-start gap-2">
+        <div className="px-3 pt-3 pb-2 bg-gray-50">
+          {/* Row 1: drag handle + name + × */}
           <div className="flex items-center gap-1.5 min-w-0">
-            {/* Drag handle */}
             <div className="flex-shrink-0 opacity-0 group-hover/slot:opacity-100 transition-opacity cursor-grab active:cursor-grabbing" title="Drag to reorder">
               <DragHandleIcon />
             </div>
             <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: def.color }} />
-            <span className="font-semibold text-gray-800 leading-snug">{def.title}</span>
+            <span className="font-semibold text-gray-800 leading-snug truncate flex-1 min-w-0">{def.title}</span>
+            <button
+              onClick={onClear}
+              className="w-5 h-5 rounded-full bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-600 flex items-center justify-center text-sm font-bold transition-colors flex-shrink-0 ml-auto"
+              title="Remove"
+            >
+              ×
+            </button>
           </div>
-          <div className="flex items-center gap-1.5 flex-shrink-0">
+          {/* Row 2: promo button */}
+          <div className="mt-2 pl-5">
             <button
               onClick={() => setShowPromoModal(true)}
               className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full border transition-colors ${
@@ -199,14 +207,7 @@ function PlanSlotCard({ slot, slotIndex, instanceId, dispatch, onClear }: PlanSl
               <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
                 <path d="M1 5h8M5 1v8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
               </svg>
-              Promo
-            </button>
-            <button
-              onClick={onClear}
-              className="w-5 h-5 rounded-full bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-600 flex items-center justify-center text-sm font-bold transition-colors flex-shrink-0"
-              title="Remove"
-            >
-              ×
+              {hasAnyPromo ? 'Edit Promo' : '+ Promo'}
             </button>
           </div>
         </div>
@@ -385,17 +386,25 @@ function AddonSlotCard({ slot, slotIndex, instanceId, dispatch, onClear }: Addon
     <>
       <div className="rounded-lg overflow-hidden border border-gray-200 border-l-4" style={{ borderLeftColor: '#9DC63F' }}>
         {/* Header */}
-        <div className="px-3 py-3 bg-gray-50 flex justify-between items-start gap-2">
+        <div className="px-3 pt-3 pb-2 bg-gray-50">
+          {/* Row 1: drag handle + name + × */}
           <div className="flex items-center gap-1.5 min-w-0">
-            {/* Drag handle */}
             <div className="flex-shrink-0 opacity-0 group-hover/slot:opacity-100 transition-opacity cursor-grab active:cursor-grabbing" title="Drag to reorder">
               <DragHandleIcon />
             </div>
-            <span className="font-semibold text-gray-800 leading-snug">{def.name}</span>
+            <span className="font-semibold text-gray-800 leading-snug truncate flex-1 min-w-0">{def.name}</span>
+            <button
+              onClick={onClear}
+              className="w-5 h-5 rounded-full bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-600 flex items-center justify-center text-sm font-bold transition-colors flex-shrink-0 ml-auto"
+              title="Remove"
+            >
+              ×
+            </button>
           </div>
-          <div className="flex items-center gap-1.5 flex-shrink-0">
+          {/* Row 2: price + promo button */}
+          <div className="mt-1.5 pl-5 flex items-center gap-2 flex-wrap">
             {discounted !== null ? (
-              <div className="text-right">
+              <div>
                 <div className="flex items-center gap-1">
                   <span className="text-xs text-gray-400 line-through">{def.price}</span>
                   <span className="text-sm font-bold text-amber-600">{formatCurrency(discounted)}/mo</span>
@@ -418,14 +427,7 @@ function AddonSlotCard({ slot, slotIndex, instanceId, dispatch, onClear }: Addon
               <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
                 <path d="M1 5h8M5 1v8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
               </svg>
-              Promo
-            </button>
-            <button
-              onClick={onClear}
-              className="w-5 h-5 rounded-full bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-600 flex items-center justify-center text-sm font-bold transition-colors flex-shrink-0"
-              title="Remove"
-            >
-              ×
+              {promo ? 'Edit Promo' : '+ Promo'}
             </button>
           </div>
         </div>
