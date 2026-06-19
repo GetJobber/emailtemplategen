@@ -137,9 +137,9 @@ function SlotCard({ slot, onClear, onEdit }: SlotCardProps) {
     const visibleFeatures = def.features.filter(f => slot.visibleFeatureIds.includes(f.id));
 
     return (
-      <div className="rounded-lg overflow-hidden border flex flex-col" style={{ borderColor: def.color }}>
+      <div className="rounded-lg overflow-hidden border border-gray-300 flex flex-col">
         {/* Header */}
-        <div className="relative px-3 py-2 text-white" style={{ backgroundColor: def.color }}>
+        <div className="relative px-3 py-2 bg-gray-500 text-white">
           <div className="absolute top-1 right-1 flex items-center gap-0.5">
             {hasPromo && (
               <span className="w-2 h-2 rounded-full bg-amber-300 flex-shrink-0" title="Promotion active" />
@@ -161,7 +161,10 @@ function SlotCard({ slot, onClear, onEdit }: SlotCardProps) {
               ×
             </button>
           </div>
-          <div className="font-semibold text-sm pr-14 truncate">{def.title}</div>
+          <div className="flex items-center gap-1.5 pr-14">
+            <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: def.color }} />
+            <span className="font-semibold text-sm truncate">{def.title}</span>
+          </div>
           <div className="text-xs opacity-75 mt-0.5">{tier.seats} {tier.seats === 1 ? 'user seat' : 'user seats'}</div>
           <div className="text-xs opacity-80 font-bold mt-0.5">{price}</div>
         </div>
@@ -169,7 +172,7 @@ function SlotCard({ slot, onClear, onEdit }: SlotCardProps) {
         <div className="px-2 py-2 bg-white flex-1">
           {visibleFeatures.map(f => (
             <div key={f.id} className="flex items-start gap-1 py-0.5">
-              <span className="text-xs mt-0.5" style={{ color: def.color }}>✓</span>
+              <span className="text-xs mt-0.5 text-gray-500">✓</span>
               <span className="text-xs text-gray-600 leading-snug">{stripLinkSyntax(f.label)}</span>
             </div>
           ))}
