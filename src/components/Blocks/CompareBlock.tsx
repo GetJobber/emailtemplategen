@@ -8,6 +8,12 @@ import { FeatureBuckets } from './FeatureBuckets';
 import { PromoModal, type PromoRow } from './PromoModal';
 import { PRICING_LABELS, applyPromo, formatCurrency, formatValidUntil } from '../../utils/priceUtils';
 
+const PRICING_PILL_LABELS: Record<string, string> = {
+  monthlyNoCommitment: 'Monthly',
+  monthlyAnnual: '1-yr mo',
+  annualTotal: 'Annual',
+};
+
 interface Props {
   block: CompareBlockType;
   dispatch: Dispatch<CanvasAction>;
@@ -251,7 +257,7 @@ function PlanSlotCard({ slot, slotIndex, instanceId, dispatch, onClear }: PlanSl
 
         {/* Pricing rows */}
         <div className="px-4 py-3 border-t border-gray-100">
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             {ALL_PRICING_KEYS.map(key => {
               const isVisible = visiblePricingKeys.includes(key);
               const promo = promotions[key];
@@ -261,46 +267,44 @@ function PlanSlotCard({ slot, slotIndex, instanceId, dispatch, onClear }: PlanSl
               const isAnnualTotal = key === 'annualTotal';
 
               return (
-                <div key={key} className="flex items-start justify-between gap-1">
-                  <label className="flex items-center gap-1 cursor-pointer mt-0.5 min-w-0">
-                    <input
-                      type="checkbox"
-                      className="w-3 h-3 accent-jobber flex-shrink-0"
-                      checked={isVisible}
-                      onChange={() => {
-                        const newKeys = isVisible
-                          ? visiblePricingKeys.filter(k => k !== key)
-                          : [...visiblePricingKeys, key];
-                        updateSlot({ visiblePricingKeys: newKeys });
-                      }}
-                    />
-                    <span className={`text-[10px] leading-tight ${isVisible ? 'text-gray-500' : 'text-gray-300'}`}>
-                      {PRICING_LABELS[key]}
-                    </span>
-                  </label>
-                  <div className="text-right shrink-0">
+                <div key={key} className="flex items-start gap-1.5">
+                  {/* Pill toggle */}
+                  <button
+                    onClick={() => {
+                      const newKeys = isVisible
+                        ? visiblePricingKeys.filter(k => k !== key)
+                        : [...visiblePricingKeys, key];
+                      updateSlot({ visiblePricingKeys: newKeys });
+                    }}
+                    className="px-2 py-0.5 rounded-full text-[9px] font-semibold border transition-colors flex-shrink-0 mt-0.5"
+                    style={
+                      isVisible
+                        ? { backgroundColor: def.color, borderColor: def.color, color: '#fff' }
+                        : { backgroundColor: '#fff', borderColor: '#d1d5db', color: '#9ca3af' }
+                    }
+                  >
+                    {PRICING_PILL_LABELS[key]}
+                  </button>
+
+                  {/* Price value */}
+                  <div className="text-[10px] min-w-0">
                     {discounted !== null ? (
                       <>
-                        <div className="flex items-center gap-0.5 justify-end flex-wrap">
-                          <span className="text-[10px] text-gray-400 line-through">{original}</span>
-                          <span className="text-[10px] font-bold text-amber-600">{formatCurrency(discounted)}{unit}</span>
-                        </div>
-                        {isAnnualTotal && (
-                          <div className="text-[10px] text-amber-500">({formatCurrency(Math.round((discounted / 12) * 100) / 100)}/mo)</div>
-                        )}
-                        <div className="text-[10px] text-gray-400">
-                          {promo!.type === 'percent' ? `${promo!.value}%` : `$${promo!.value}`} off for {promo!.durationMonths} mo
-                        </div>
+                        <span className="text-gray-400 line-through">{original}</span>
+                        {' '}
+                        <span className="font-bold text-amber-600">{formatCurrency(discounted)}{unit}</span>
+                        {isAnnualTotal && <div className="text-amber-500">({formatCurrency(Math.round((discounted / 12) * 100) / 100)}/mo)</div>}
+                        <div className="text-gray-400">{promo!.type === 'percent' ? `${promo!.value}%` : `$${promo!.value}`} off for {promo!.durationMonths} mo</div>
                       </>
                     ) : (
                       <>
-                        <span className="text-[10px] font-semibold" style={{ color: isVisible ? def.color : '#d1d5db' }}>
+                        <span className="font-semibold" style={{ color: isVisible ? def.color : '#d1d5db' }}>
                           {original}
                         </span>
                         {isAnnualTotal && (
-                          <div className={`text-[10px] ${isVisible ? 'text-gray-400' : 'text-gray-200'}`}>
+                          <span className={`ml-0.5 ${isVisible ? 'text-gray-400' : 'text-gray-200'}`}>
                             ({selectedTier.annualMonthly})
-                          </div>
+                          </span>
                         )}
                       </>
                     )}
