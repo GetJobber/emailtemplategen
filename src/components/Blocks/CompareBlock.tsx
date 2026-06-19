@@ -536,14 +536,13 @@ export function CompareBlock({ block, dispatch }: Props) {
   }
 
   function handleDragStart(i: number, e: React.DragEvent) {
-    setDraggingIdx(i);
     e.dataTransfer.effectAllowed = 'move';
-    // Transparent drag image so the slot card itself fades rather than showing a ghost clone
-    const ghost = document.createElement('div');
-    ghost.style.cssText = 'position:fixed;top:-1000px;';
-    document.body.appendChild(ghost);
-    e.dataTransfer.setDragImage(ghost, 0, 0);
-    setTimeout(() => document.body.removeChild(ghost), 0);
+    // Use the slot wrapper itself as the drag image so it looks like the card is moving.
+    // We offset by the pointer position within the element for a natural grab feel.
+    const target = e.currentTarget as HTMLElement;
+    e.dataTransfer.setDragImage(target, e.nativeEvent.offsetX, e.nativeEvent.offsetY);
+    // Delay the opacity change so the snapshot is taken at full opacity first.
+    setTimeout(() => setDraggingIdx(i), 0);
   }
 
   function handleDragEnter(i: number) {
