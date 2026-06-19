@@ -100,15 +100,6 @@ function renderPlanBlock(block: PlanBlock, plans: PlanDefinition[]): string {
   const visiblePricingKeys = block.visiblePricingKeys ?? ALL_PRICING_KEYS;
   const promotions = block.promotions ?? {};
 
-  // Header price: first visible pricing key
-  const headerKey = visiblePricingKeys[0] ?? 'monthlyNoCommitment';
-  const headerOriginal = tier[headerKey];
-  const headerPromo = promotions[headerKey];
-  const headerDiscounted = headerPromo ? applyPromo(headerOriginal, headerPromo) : null;
-  const headerPriceHtml = headerDiscounted !== null
-    ? `<span style="text-decoration:line-through;color:#aaa;font-size:12px;margin-right:4px;">${headerOriginal}</span><strong style="color:#b45309;font-size:14px;">${formatCurrency(headerDiscounted)}/mo</strong>`
-    : `<strong style="color:#1D2D44;font-size:14px;">${headerOriginal}</strong>`;
-
   // Build pricing rows — only for visible keys
   const pricingRows = ALL_PRICING_KEYS
     .filter(key => visiblePricingKeys.includes(key))
@@ -155,17 +146,8 @@ function renderPlanBlock(block: PlanBlock, plans: PlanDefinition[]): string {
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border: 1px solid #e5e7eb; border-left: 4px solid #9DC63F; border-radius: 4px;">
     <tr>
       <td style="padding: 10px 14px; background-color: #f9fafb;">
-        <table width="100%" cellpadding="0" cellspacing="0" border="0">
-          <tr>
-            <td style="vertical-align: middle;">
-              <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background-color:${def.color};margin-right:6px;vertical-align:middle;"></span>
-              <strong style="font-size: 15px; color: #111; vertical-align: middle;">${def.title}</strong>
-            </td>
-            <td style="text-align: right; vertical-align: middle; white-space: nowrap; padding-left: 8px;">
-              ${headerPriceHtml}
-            </td>
-          </tr>
-        </table>
+        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background-color:${def.color};margin-right:6px;vertical-align:middle;"></span>
+        <strong style="font-size: 15px; color: #111; vertical-align: middle;">${def.title}</strong>
       </td>
     </tr>
     <tr>
@@ -310,15 +292,6 @@ function renderCompareSlotCell(slot: CompareSlot, plans: PlanDefinition[], addon
     const visiblePricingKeys = slot.visiblePricingKeys ?? ALL_PRICING_KEYS;
     const promotions = slot.promotions ?? {};
 
-    // Header price: first visible pricing key
-    const headerKey = visiblePricingKeys[0] ?? 'monthlyNoCommitment';
-    const headerOriginal = tier[headerKey];
-    const headerPromo = promotions[headerKey];
-    const headerDiscounted = headerPromo ? applyPromo(headerOriginal, headerPromo) : null;
-    const headerPriceHtml = headerDiscounted !== null
-      ? `<span style="text-decoration:line-through;color:#aaa;font-size:11px;">${escapeHtml(headerOriginal)}</span> <strong style="color:#b45309;font-size:12px;">${escapeHtml(formatCurrency(headerDiscounted))}/mo</strong>`
-      : `<strong style="color:#1D2D44;font-size:12px;">${escapeHtml(headerOriginal)}</strong>`;
-
     // All visible pricing rows
     const pricingRows = ALL_PRICING_KEYS
       .filter(key => visiblePricingKeys.includes(key))
@@ -352,17 +325,8 @@ function renderCompareSlotCell(slot: CompareSlot, plans: PlanDefinition[], addon
         <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #e5e7eb; border-left:4px solid #9DC63F; border-radius:4px;">
           <tr>
             <td style="padding:8px 10px; background-color:#f9fafb;">
-              <table width="100%" cellpadding="0" cellspacing="0" border="0">
-                <tr>
-                  <td style="vertical-align:middle;">
-                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${def.color};margin-right:5px;vertical-align:middle;"></span>
-                    <strong style="font-size:13px; color:#111; vertical-align:middle;">${escapeHtml(def.title)}</strong>
-                  </td>
-                  <td style="text-align:right; vertical-align:middle; padding-left:6px; white-space:nowrap;">
-                    ${headerPriceHtml}
-                  </td>
-                </tr>
-              </table>
+              <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${def.color};margin-right:5px;vertical-align:middle;"></span>
+              <strong style="font-size:13px; color:#111; vertical-align:middle;">${escapeHtml(def.title)}</strong>
             </td>
           </tr>
           <tr>

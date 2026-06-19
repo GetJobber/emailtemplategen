@@ -35,12 +35,6 @@ export function PlanBlock({ block, dispatch }: Props) {
     originalPrice: selectedTier[key],
   }));
 
-  // Header price: first visible pricing key
-  const headerKey = visiblePricingKeys[0] ?? 'monthlyNoCommitment';
-  const headerOriginal = selectedTier[headerKey];
-  const headerPromo = promotions[headerKey];
-  const headerDiscounted = headerPromo ? applyPromo(headerOriginal, headerPromo) : null;
-
   return (
     <>
       <div className="p-3">
@@ -56,16 +50,6 @@ export function PlanBlock({ block, dispatch }: Props) {
               <span className="font-semibold text-gray-800 leading-snug">{def.title}</span>
             </div>
             <div className="flex items-center gap-1.5 flex-shrink-0">
-              {headerDiscounted !== null ? (
-                <div className="text-right">
-                  <div className="flex items-center gap-1">
-                    <span className="text-xs text-gray-400 line-through">{headerOriginal}</span>
-                    <span className="text-sm font-bold text-amber-600">{formatCurrency(headerDiscounted)}/mo</span>
-                  </div>
-                </div>
-              ) : (
-                <span className="text-sm font-bold text-jobber-dark">{headerOriginal}</span>
-              )}
               <button
                 onClick={() => setShowPromoModal(true)}
                 className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full border transition-colors ${
