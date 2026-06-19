@@ -35,19 +35,59 @@ export function PlanBlock({ block, dispatch }: Props) {
     originalPrice: selectedTier[key],
   }));
 
+  // Header price: first visible pricing key
+  const headerKey = visiblePricingKeys[0] ?? 'monthlyNoCommitment';
+  const headerOriginal = selectedTier[headerKey];
+  const headerPromo = promotions[headerKey];
+  const headerDiscounted = headerPromo ? applyPromo(headerOriginal, headerPromo) : null;
+
   return (
     <>
       <div className="p-3">
-        <div className="rounded-lg overflow-hidden border" style={{ borderColor: def.color }}>
+        <div className="rounded-lg overflow-hidden border border-gray-200 border-l-4" style={{ borderLeftColor: '#9DC63F' }}>
+
           {/* Header */}
-          <div className="px-4 py-3 text-white" style={{ backgroundColor: def.color }}>
-            <div className="font-bold text-lg">{def.title}</div>
-            <div className="text-sm opacity-80">{stripLinkSyntax(def.tagline)}</div>
+          <div className="px-4 py-3 bg-gray-50 flex justify-between items-start gap-2">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span
+                className="w-2.5 h-2.5 rounded-full flex-shrink-0 mt-0.5"
+                style={{ backgroundColor: def.color }}
+              />
+              <span className="font-semibold text-gray-800 leading-snug">{def.title}</span>
+            </div>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              {headerDiscounted !== null ? (
+                <div className="text-right">
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-gray-400 line-through">{headerOriginal}</span>
+                    <span className="text-sm font-bold text-amber-600">{formatCurrency(headerDiscounted)}/mo</span>
+                  </div>
+                </div>
+              ) : (
+                <span className="text-sm font-bold text-jobber-dark">{headerOriginal}</span>
+              )}
+              <button
+                onClick={() => setShowPromoModal(true)}
+                className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full border transition-colors ${
+                  hasAnyPromo
+                    ? 'bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100'
+                    : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
+                }`}
+              >
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                  <path d="M1 5h8M5 1v8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+                {hasAnyPromo ? 'Promo' : 'Promo'}
+              </button>
+            </div>
           </div>
+
+          {/* Tagline */}
+          <div className="px-4 pt-2 pb-1 text-sm text-gray-600">{stripLinkSyntax(def.tagline)}</div>
 
           {/* Seat selector */}
           {def.tiers.length > 1 && (
-            <div className="px-4 py-2 border-b border-gray-100 bg-gray-50">
+            <div className="px-4 py-2 border-t border-gray-100">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">User seats</p>
               <div className="flex gap-1.5 flex-wrap">
                 {def.tiers.map(tier => (
@@ -69,24 +109,7 @@ export function PlanBlock({ block, dispatch }: Props) {
           )}
 
           {/* Pricing rows */}
-          <div className="px-4 py-3 border-b border-gray-100">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Pricing</p>
-              <button
-                onClick={() => setShowPromoModal(true)}
-                className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full border transition-colors ${
-                  hasAnyPromo
-                    ? 'bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100'
-                    : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
-                }`}
-              >
-                <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
-                  <path d="M1 5.5h9M5.5 1v9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                </svg>
-                {hasAnyPromo ? 'Edit Promotion' : 'Add Promotion'}
-              </button>
-            </div>
-
+          <div className="px-4 py-3 border-t border-gray-100">
             <div className="space-y-1.5">
               {ALL_PRICING_KEYS.map(key => {
                 const isVisible = visiblePricingKeys.includes(key);
@@ -159,7 +182,7 @@ export function PlanBlock({ block, dispatch }: Props) {
           </div>
 
           {/* Feature buckets */}
-          <div className="px-4 py-3">
+          <div className="px-4 py-3 border-t border-gray-100">
             <FeatureBuckets
               allFeatures={def.features}
               visibleFeatureIds={block.visibleFeatureIds}
