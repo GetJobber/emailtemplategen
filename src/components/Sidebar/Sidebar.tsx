@@ -52,6 +52,30 @@ export function Sidebar({ dispatch }: Props) {
           />
         </SidebarSection>
 
+        <SidebarSection title="Customization Blocks">
+          <DraggableSidebarItem
+            id="heading"
+            label="Heading"
+            description="Large bold section header"
+            blockFactory={() => ({ instanceId: generateId(), kind: 'heading', text: '', alignment: 'center' })}
+            onAdd={() => addBlock({ instanceId: generateId(), kind: 'heading', text: '', alignment: 'center' })}
+          />
+          <DraggableSidebarItem
+            id="free-text"
+            label="Free Text"
+            description="Add a custom paragraph or note"
+            blockFactory={() => ({ instanceId: generateId(), kind: 'text', content: '' })}
+            onAdd={() => addBlock({ instanceId: generateId(), kind: 'text', content: '' })}
+          />
+          <DraggableSidebarItem
+            id="compare"
+            label="Compare"
+            description="Side-by-side comparison of up to 3 plans or add-ons"
+            blockFactory={() => ({ instanceId: generateId(), kind: 'compare', slots: [null, null, null] })}
+            onAdd={() => addBlock({ instanceId: generateId(), kind: 'compare', slots: [null, null, null] })}
+          />
+        </SidebarSection>
+
         <SidebarSection title="Plans">
           {plans.map(plan => (
             <DraggableSidebarItem
@@ -115,27 +139,7 @@ export function Sidebar({ dispatch }: Props) {
         </SidebarSection>
 
         <SidebarSection title="Other">
-          <DraggableSidebarItem
-            id="heading"
-            label="Heading"
-            description="Large bold section header"
-            blockFactory={() => ({ instanceId: generateId(), kind: 'heading', text: '', alignment: 'center' })}
-            onAdd={() => addBlock({ instanceId: generateId(), kind: 'heading', text: '', alignment: 'center' })}
-          />
-          <DraggableSidebarItem
-            id="free-text"
-            label="Free Text"
-            description="Add a custom paragraph or note"
-            blockFactory={() => ({ instanceId: generateId(), kind: 'text', content: '' })}
-            onAdd={() => addBlock({ instanceId: generateId(), kind: 'text', content: '' })}
-          />
-          <DraggableSidebarItem
-            id="compare"
-            label="Compare"
-            description="Side-by-side comparison of up to 3 plans or add-ons"
-            blockFactory={() => ({ instanceId: generateId(), kind: 'compare', slots: [null, null, null] })}
-            onAdd={() => addBlock({ instanceId: generateId(), kind: 'compare', slots: [null, null, null] })}
-          />
+          <></>
         </SidebarSection>
       </div>
     </aside>
