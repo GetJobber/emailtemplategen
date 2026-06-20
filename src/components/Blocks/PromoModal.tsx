@@ -201,7 +201,7 @@ export function PromoModal({ title, rows, initialPromos, initialValidUntil, onSa
                       <span className="text-xs text-gray-500">months</span>
                       {/* Quick picks */}
                       <div className="flex gap-1">
-                        {[3, 6, 12].map(m => (
+                        {[3, 4, 6, 12].map(m => (
                           <button
                             key={m}
                             onClick={() => patch(row.key, { durationMonths: String(m) })}
