@@ -262,8 +262,8 @@ function PlanSlotCard({ slot, slotIndex, instanceId, dispatch, onClear }: PlanSl
               const unit = original.includes('/yr') ? '/yr' : '/mo';
 
               return (
-                <div key={opt.id} className="flex items-start gap-1.5">
-                  {/* Pill toggle */}
+                <div key={opt.id} className="space-y-0.5">
+                  {/* Full-width toggle button — label wraps naturally */}
                   <button
                     onClick={() => {
                       const newIds = isVisible
@@ -271,7 +271,7 @@ function PlanSlotCard({ slot, slotIndex, instanceId, dispatch, onClear }: PlanSl
                         : [...visiblePricingOptionIds, opt.id];
                       updateSlot({ visiblePricingOptionIds: newIds });
                     }}
-                    className="px-2 py-0.5 rounded-full text-[9px] font-semibold border transition-colors flex-shrink-0 mt-0.5"
+                    className="w-full text-left px-2 py-0.5 rounded text-[9px] font-semibold border transition-colors leading-snug"
                     style={
                       isVisible
                         ? { backgroundColor: def.color, borderColor: def.color, color: '#fff' }
@@ -281,8 +281,8 @@ function PlanSlotCard({ slot, slotIndex, instanceId, dispatch, onClear }: PlanSl
                     {opt.label}
                   </button>
 
-                  {/* Price value */}
-                  <div className="text-[10px] min-w-0">
+                  {/* Price value — stacked below the label */}
+                  <div className="text-[10px] pl-1">
                     {discounted !== null ? (
                       <>
                         <span className="text-gray-400 line-through">{original}</span>
@@ -457,7 +457,7 @@ function AddonSlotCard({ slot, slotIndex, instanceId, dispatch, onClear }: Addon
               const unit = tier.price.includes('/yr') ? '/yr' : '/mo';
 
               return (
-                <div key={tier.id} className="flex items-start gap-1.5">
+                <div key={tier.id} className="space-y-0.5">
                   <button
                     onClick={() => {
                       const newIds = isVisible
@@ -465,7 +465,7 @@ function AddonSlotCard({ slot, slotIndex, instanceId, dispatch, onClear }: Addon
                         : [...visibleTierIds, tier.id];
                       updateSlot({ visibleTierIds: newIds });
                     }}
-                    className="px-2 py-0.5 rounded-full text-[9px] font-semibold border transition-colors flex-shrink-0 mt-0.5"
+                    className="w-full text-left px-2 py-0.5 rounded text-[9px] font-semibold border transition-colors leading-snug"
                     style={
                       isVisible
                         ? { backgroundColor: '#9DC63F', borderColor: '#9DC63F', color: '#fff' }
@@ -474,7 +474,7 @@ function AddonSlotCard({ slot, slotIndex, instanceId, dispatch, onClear }: Addon
                   >
                     {tier.label}
                   </button>
-                  <div className="text-[10px] min-w-0">
+                  <div className="text-[10px] pl-1">
                     {discounted !== null ? (
                       <>
                         <span className="text-gray-400 line-through">{tier.price}</span>
