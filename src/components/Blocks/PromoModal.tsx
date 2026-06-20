@@ -97,6 +97,7 @@ export function PromoModal({ title, rows, initialPromos, initialValidUntil, onSa
       ref={overlayRef}
       onClick={e => { if (e.target === overlayRef.current) onClose(); }}
       onPointerDown={e => e.stopPropagation()}
+      onDragStart={e => e.preventDefault()}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
     >
       <div className="bg-white rounded-2xl shadow-2xl flex flex-col w-full max-w-lg mx-4 overflow-hidden" style={{ maxHeight: '90vh' }}>
