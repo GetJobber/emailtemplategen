@@ -52,8 +52,19 @@ export function PromoModal({ title, rows, initialPromos, initialValidUntil, onSa
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
+  const allEnabled = rows.every(r => rowStates[r.key]?.enabled);
+
   function patch(key: string, patch: Partial<RowState>) {
     setRowStates(s => ({ ...s, [key]: { ...s[key], ...patch } }));
+  }
+
+  function toggleAll() {
+    const next = !allEnabled;
+    setRowStates(s => {
+      const updated = { ...s };
+      rows.forEach(r => { updated[r.key] = { ...s[r.key], enabled: next }; });
+      return updated;
+    });
   }
 
   function handleSave() {
@@ -85,7 +96,15 @@ export function PromoModal({ title, rows, initialPromos, initialValidUntil, onSa
             <h2 className="text-sm font-bold text-gray-800">Add Promotions</h2>
             <p className="text-xs text-gray-400 mt-0.5">{title}</p>
           </div>
-          <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-700 text-lg font-light">×</button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={toggleAll}
+              className="text-xs font-semibold text-jobber hover:text-jobber-dark transition-colors"
+            >
+              {allEnabled ? 'Deselect all' : 'Select all'}
+            </button>
+            <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-700 text-lg font-light">×</button>
+          </div>
         </div>
 
         {/* Rows */}
