@@ -89,7 +89,7 @@ export const PLANS: PlanDefinition[] = [
       },
     ],
     features: [
-      { id: 'connect-0', label: 'Everything in Core' },
+      { id: 'connect-0', label: 'Everything in [Core](https://help.getjobber.com/hc/en-us/articles/360048155913-The-Core-Plan)' },
       { id: 'connect-1', label: 'Automated client notifications' },
       { id: 'connect-2', label: 'Checklists' },
       { id: 'connect-3', label: 'Routing' },
