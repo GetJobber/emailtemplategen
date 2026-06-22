@@ -36,7 +36,7 @@ export const PLANS: PlanDefinition[] = [
       { id: 'core-17', label: 'Mobile app (iOS & Android)' },
       { id: 'core-18', label: '1-on-1 product support' },
       { id: 'core-19', label: 'Jobber Capital' },
-      { id: 'core-20', label: 'Marketing dashboard & website' },
+      { id: 'core-20', label: 'Marketing Performance dashboard' },
       { id: 'core-21', label: 'Book and schedule jobs online' },
       { id: 'core-22', label: 'Send professional quotes' },
       { id: 'core-23', label: 'Send invoices and receive online payments' },
