@@ -20,7 +20,7 @@ export const JOBBER_PAYMENTS: JobberPaymentsDefinition = {
     { id: 'pay-1', label: 'Credit Card Payments (Visa, MC, Amex)' },
     { id: 'pay-2', label: 'Debit Card Payments (US Only)' },
     { id: 'pay-3', label: 'Accept online payments by ACH (US Only)' },
-    { id: 'pay-4', label: 'Tap to Pay with Mobile App' },
+    { id: 'pay-4', label: 'Tap to Pay with Mobile App (CA and US Only)' },
     { id: 'pay-5', label: 'Automatic Payments (Connect, Grow, Plus)' },
     { id: 'pay-6', label: 'Tip Collection' },
     { id: 'pay-7', label: 'Instant Payouts (CA and US Only)' },
