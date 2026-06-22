@@ -14,6 +14,11 @@ export const JOBBER_PAYMENTS: JobberPaymentsDefinition = {
       location: 'UK',
       standardRate: '1.4% + 20p',
     },
+    {
+      id: 'rate-ach',
+      location: 'ACH Rate (US Only)',
+      standardRate: '1%',
+    },
   ],
   features: [
     { id: 'pay-1', label: 'Credit Card Payments (Visa, MC, Amex)' },
