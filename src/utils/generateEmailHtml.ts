@@ -609,6 +609,7 @@ function renderJobberPaymentsBlock(block: JobberPaymentsBlock, def: JobberPaymen
             <td style="text-align: right;">
               <strong style="color: ${TEAL}; font-size: 13px;">${escapeHtml(selectedRate.standardRate)}</strong>
               ${selectedRate.tapToPayRate ? `<span style="display:block; font-size:11px; color:#555;">Tap to Pay: <strong style="color:${TEAL};">${escapeHtml(selectedRate.tapToPayRate)}</strong></span>` : ''}
+              ${selectedRate.achRate ? `<span style="display:block; font-size:11px; color:#555;">ACH (US Only): <strong style="color:${TEAL};">${escapeHtml(selectedRate.achRate)}</strong></span>` : ''}
             </td>
           </tr>
         </table>
@@ -793,7 +794,7 @@ export function generateEmailText(state: AppState, plans: PlanDefinition[], addo
           otherFeaturesText ? (keyFeaturesText ? `Other features included:\n${otherFeaturesText}` : otherFeaturesText) : '',
         ].filter(Boolean).join('\n');
         const rateText = selectedRate
-          ? `${selectedRate.location}: ${selectedRate.standardRate}${selectedRate.tapToPayRate ? ` | Tap to Pay: ${selectedRate.tapToPayRate}` : ''}`
+          ? `${selectedRate.location}: ${selectedRate.standardRate}${selectedRate.tapToPayRate ? ` | Tap to Pay: ${selectedRate.tapToPayRate}` : ''}${selectedRate.achRate ? ` | ACH (US Only): ${selectedRate.achRate}` : ''}`
           : '';
         return ['Jobber Payments', def.description, rateText, features].filter(Boolean).join('\n');
       }

@@ -1407,7 +1407,7 @@ function PaymentsTab({ def, dispatch }: PaymentsTabProps) {
                         placeholder="e.g. Canada & US"
                       />
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-3 gap-3">
                       <div>
                         <label className="text-xs text-gray-400 block mb-0.5">Standard Rate</label>
                         <input
@@ -1424,6 +1424,15 @@ function PaymentsTab({ def, dispatch }: PaymentsTabProps) {
                           onChange={e => dispatch({ type: 'UPDATE_PAYMENTS_RATE', rateId: rate.id, field: 'tapToPayRate', value: e.target.value })}
                           className="w-full text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-jobber"
                           placeholder="e.g. 2.7% + 30¢"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-400 block mb-0.5">ACH Rate (optional)</label>
+                        <input
+                          value={rate.achRate ?? ''}
+                          onChange={e => dispatch({ type: 'UPDATE_PAYMENTS_RATE', rateId: rate.id, field: 'achRate', value: e.target.value })}
+                          className="w-full text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-jobber"
+                          placeholder="e.g. 1%"
                         />
                       </div>
                     </div>

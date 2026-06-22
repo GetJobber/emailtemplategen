@@ -75,6 +75,11 @@ export function JobberPaymentsBlock({ block, dispatch }: Props) {
                     Tap to Pay: <span className="font-medium" style={{ color: PAYMENTS_COLOR }}>{selectedRate.tapToPayRate}</span> <span className="text-gray-400">per transaction</span>
                   </div>
                 )}
+                {selectedRate.achRate && (
+                  <div className="text-xs text-gray-500 mt-0.5">
+                    ACH (US Only): <span className="font-medium" style={{ color: PAYMENTS_COLOR }}>{selectedRate.achRate}</span> <span className="text-gray-400">per transaction</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
