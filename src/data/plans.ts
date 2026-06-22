@@ -221,6 +221,11 @@ export const PLANS: PlanDefinition[] = [
     ],
     features: [
       { id: 'plus-0', label: 'All Core, Connect and Grow features' },
+      { id: 'plus-8', label: 'Automated Job Costing' },
+      { id: 'plus-9', label: 'Breaks & Labeled Time Tracking' },
+      { id: 'plus-10', label: 'File & Media Library' },
+      { id: 'plus-11', label: 'Voice for field workers' },
+      { id: 'plus-12', label: 'Revenue Goals' },
       { id: 'plus-1', label: 'Receptionist (included — $99/mo value)' },
       { id: 'plus-2', label: 'Pipeline (included — $49/mo value)' },
       { id: 'plus-3', label: 'Marketing Suite (included — $79/mo value)' },
