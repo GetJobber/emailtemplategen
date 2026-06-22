@@ -199,6 +199,14 @@ export const PLANS: PlanDefinition[] = [
           'plus-opt-2': { price: '$6,348/yr', monthlyEquivalent: '$529/mo' },
         },
       },
+      {
+        seats: 'unlimited',
+        prices: {
+          'plus-opt-0': { price: '$1,499/mo' },
+          'plus-opt-1': { price: '$1,199/mo' },
+          'plus-opt-2': { price: '$11,988/yr', monthlyEquivalent: '$999/mo' },
+        },
+      },
     ],
     features: [
       { id: 'plus-0', label: 'Everything in Grow' },

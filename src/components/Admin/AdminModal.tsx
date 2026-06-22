@@ -381,11 +381,19 @@ function SortableTierRow({ planId, tier, tierIndex, pricingOptions, dispatch, ca
           </button>
           <span className="text-xs font-semibold text-gray-500">User seats:</span>
           <input
-            type="number"
-            min={1}
-            value={tier.seats}
-            onChange={e => dispatch({ type: 'UPDATE_TIER_SEATS', planId, tierIndex, seats: Number(e.target.value) })}
-            className="w-16 text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-jobber"
+            type="text"
+            value={tier.seats === 'unlimited' ? 'Unlimited' : String(tier.seats)}
+            onChange={e => {
+              const v = e.target.value.trim().toLowerCase();
+              if (v === 'unlimited') {
+                dispatch({ type: 'UPDATE_TIER_SEATS', planId, tierIndex, seats: 'unlimited' });
+              } else {
+                const n = parseInt(v, 10);
+                if (!isNaN(n) && n > 0) dispatch({ type: 'UPDATE_TIER_SEATS', planId, tierIndex, seats: n });
+              }
+            }}
+            placeholder="e.g. 5 or Unlimited"
+            className="w-24 text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-jobber"
           />
         </div>
         {canRemove && (
