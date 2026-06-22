@@ -248,9 +248,6 @@ function PlanSlotCard({ slot, slotIndex, instanceId, dispatch, onClear, onModalO
           </div>
         </div>
 
-        {/* Tagline */}
-        <div className="px-4 pt-2 pb-1 text-xs text-gray-600">{stripLinkSyntax(def.tagline)}</div>
-
         {/* Pricing rows */}
         <div className="px-4 py-3 border-t border-gray-100">
           <div className="space-y-2">
@@ -352,6 +349,9 @@ function PlanSlotCard({ slot, slotIndex, instanceId, dispatch, onClear, onModalO
             </p>
           )}
         </div>
+
+        {/* Tagline */}
+        <div className="px-4 pt-2 pb-1 text-xs text-gray-600 border-t border-gray-100">{stripLinkSyntax(def.tagline)}</div>
 
         {/* Feature buckets */}
         <div className="px-4 py-3 border-t border-gray-100">
@@ -489,8 +489,6 @@ function AddonSlotCard({ slot, slotIndex, instanceId, dispatch, onClear, onModal
           </div>
         </div>
 
-        <div className="px-4 pt-2 pb-1 text-sm text-gray-600">{stripLinkSyntax(def.description)}</div>
-
         {/* Pricing rows */}
         <div className="px-4 py-3 border-t border-gray-100">
           <div className="space-y-2">
@@ -590,6 +588,9 @@ function AddonSlotCard({ slot, slotIndex, instanceId, dispatch, onClear, onModal
             </p>
           )}
         </div>
+
+        {/* Description */}
+        <div className="px-4 pt-2 pb-1 text-sm text-gray-600 border-t border-gray-100">{stripLinkSyntax(def.description)}</div>
 
         <div className="px-4 py-3 border-t border-gray-100">
           <FeatureBuckets

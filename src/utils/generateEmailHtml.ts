@@ -216,9 +216,6 @@ function renderPlanBlock(block: PlanBlock, plans: PlanDefinition[]): string {
       </td>
     </tr>
     <tr>
-      <td style="padding: 6px 14px 8px; color: #555; font-size: 13px; border-bottom: 1px solid #f0f0f0;">${processTextContent(def.tagline)}</td>
-    </tr>
-    <tr>
       <td style="padding: 8px 14px;">
         ${featuredPricingBox}
         <table cellpadding="0" cellspacing="0" border="0" width="100%">
@@ -227,9 +224,12 @@ function renderPlanBlock(block: PlanBlock, plans: PlanDefinition[]): string {
         ${block.promoValidUntil && Object.keys(promotions).length > 0 ? `<p style="margin: 6px 0 0; font-size: 11px; color: #92400e;">Promotional pricing valid until ${formatValidUntil(block.promoValidUntil)}.</p>` : ''}
       </td>
     </tr>
+    <tr>
+      <td style="padding: 6px 14px 8px; color: #555; font-size: 13px; border-top: 1px solid #f0f0f0; border-bottom: 1px solid #f0f0f0;">${processTextContent(def.tagline)}</td>
+    </tr>
     ${hasFeatures ? `
     <tr>
-      <td style="padding: 8px 14px 12px; border-top: 1px solid #f0f0f0;">
+      <td style="padding: 8px 14px 12px;">
         <table cellpadding="0" cellspacing="0" border="0" width="100%">
           ${featureRows}
         </table>
@@ -306,9 +306,6 @@ function renderAddonBlock(block: AddonBlock, addons: AddonDefinition[]): string 
       </td>
     </tr>
     <tr>
-      <td style="padding: 4px 14px 8px; color: #555; font-size: 13px; border-bottom: 1px solid #f0f0f0;">${processTextContent(def.description)}</td>
-    </tr>
-    <tr>
       <td style="padding: 8px 14px;">
         ${featuredAddonBox}
         <table cellpadding="0" cellspacing="0" border="0" width="100%">
@@ -317,9 +314,12 @@ function renderAddonBlock(block: AddonBlock, addons: AddonDefinition[]): string 
         ${block.promoValidUntil && Object.keys(promotions).length > 0 ? `<p style="margin: 6px 0 0; font-size: 11px; color: #92400e;">Promotional pricing valid until ${formatValidUntil(block.promoValidUntil)}.</p>` : ''}
       </td>
     </tr>
+    <tr>
+      <td style="padding: 4px 14px 8px; color: #555; font-size: 13px; border-top: 1px solid #f0f0f0; border-bottom: 1px solid #f0f0f0;">${processTextContent(def.description)}</td>
+    </tr>
     ${hasFeatures ? `
     <tr>
-      <td style="padding: 8px 14px 12px; border-top: 1px solid #f0f0f0;">
+      <td style="padding: 8px 14px 12px;">
         <table cellpadding="0" cellspacing="0" border="0" width="100%">
           ${featureRows}
         </table>
@@ -459,9 +459,6 @@ function renderCompareSlotCell(slot: CompareSlot, plans: PlanDefinition[], addon
             <strong>User seats:</strong> <span style="color:${def.color}; font-weight:bold;">${seatLabel}</span>
           </td>
         </tr>
-        <tr>
-          <td style="padding:3px 10px 6px; color:#555; font-size:12px;">${escapeHtml(stripLinkSyntax(def.tagline))}</td>
-        </tr>
         ${featuredCompareBox || pricingRows || promoValidUntilHtml ? `
         <tr>
           <td style="padding:6px 10px; border-bottom:1px solid #f0f0f0;">
@@ -470,6 +467,9 @@ function renderCompareSlotCell(slot: CompareSlot, plans: PlanDefinition[], addon
             ${promoValidUntilHtml}
           </td>
         </tr>` : ''}
+        <tr>
+          <td style="padding:3px 10px 6px; color:#555; font-size:12px; border-bottom:1px solid #f0f0f0;">${processTextContent(def.tagline)}</td>
+        </tr>
         ${featureRows ? `
         <tr>
           <td style="padding:8px 10px;">
@@ -537,9 +537,6 @@ function renderCompareSlotCell(slot: CompareSlot, plans: PlanDefinition[], addon
           <strong style="font-size:13px; color:#111;">${escapeHtml(def.name)}</strong>
         </td>
       </tr>
-      <tr>
-        <td style="padding:3px 10px 6px; color:#555; font-size:12px;">${escapeHtml(stripLinkSyntax(def.description))}</td>
-      </tr>
       ${featuredAddonCompareBox || addonPricingRows || promoValidUntilHtml ? `
       <tr>
         <td style="padding:6px 10px; border-bottom:1px solid #f0f0f0;">
@@ -548,9 +545,12 @@ function renderCompareSlotCell(slot: CompareSlot, plans: PlanDefinition[], addon
           ${promoValidUntilHtml}
         </td>
       </tr>` : ''}
+      <tr>
+        <td style="padding:3px 10px 6px; color:#555; font-size:12px; border-bottom:1px solid #f0f0f0;">${processTextContent(def.description)}</td>
+      </tr>
       ${featureRows ? `
       <tr>
-        <td style="padding:6px 10px 10px; border-top:1px solid #f0f0f0;">
+        <td style="padding:6px 10px 10px;">
           ${featureRows}
         </td>
       </tr>` : ''}

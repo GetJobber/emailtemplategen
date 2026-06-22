@@ -65,9 +65,6 @@ export function AddonBlock({ block, dispatch }: Props) {
             </div>
           </div>
 
-          {/* Description */}
-          <div className="px-4 py-2 border-b border-gray-100 text-sm text-gray-600">{stripLinkSyntax(def.description)}</div>
-
           {/* Pricing rows */}
           <div className="px-4 py-3">
             <div className="space-y-2">
@@ -162,8 +159,11 @@ export function AddonBlock({ block, dispatch }: Props) {
             )}
           </div>
 
+          {/* Description */}
+          <div className="px-4 py-2 border-t border-b border-gray-100 text-sm text-gray-600">{stripLinkSyntax(def.description)}</div>
+
           {/* Feature buckets */}
-          <div className="px-4 py-3 border-t border-gray-100">
+          <div className="px-4 py-3">
             <FeatureBuckets
               allFeatures={def.features}
               visibleFeatureIds={block.visibleFeatureIds}
