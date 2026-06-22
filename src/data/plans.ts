@@ -5,6 +5,7 @@ export const PLANS: PlanDefinition[] = [
     id: 'core',
     title: 'Core',
     tagline: 'Essential tools to grow your reputation as a professional home service business.',
+    learnMoreUrl: 'https://help.getjobber.com/hc/en-us/articles/360048155913-The-Core-Plan',
     color: '#1F9839',
     pricingOptions: [
       { id: 'core-opt-2', label: '1-year commitment, billed annually' },
@@ -50,6 +51,7 @@ export const PLANS: PlanDefinition[] = [
     id: 'connect',
     title: 'Connect',
     tagline: 'Automations and must-have integrations to reduce admin work and impress customers.',
+    learnMoreUrl: 'https://help.getjobber.com/hc/en-us/articles/12296620144919-The-Connect-Plan',
     color: '#0A6FD1',
     pricingOptions: [
       { id: 'connect-opt-2', label: '1-year commitment, billed annually' },
@@ -121,6 +123,7 @@ export const PLANS: PlanDefinition[] = [
     id: 'grow',
     title: 'Grow',
     tagline: 'Advanced tools to win bigger jobs, scale your operations, and take back your admin time.',
+    learnMoreUrl: 'https://help.getjobber.com/hc/en-us/articles/360050124513-The-Grow-Plan',
     color: '#7C3AED',
     pricingOptions: [
       { id: 'grow-opt-2', label: '1-year commitment, billed annually' },
@@ -179,6 +182,7 @@ export const PLANS: PlanDefinition[] = [
     id: 'plus',
     title: 'Plus',
     tagline: 'All features backed by premium support to maximize efficiency and profits.',
+    learnMoreUrl: 'https://help.getjobber.com/hc/en-us/articles/29668508840727-The-Plus-Plan',
     color: '#D97706',
     pricingOptions: [
       { id: 'plus-opt-2', label: '1-year commitment, billed annually' },
