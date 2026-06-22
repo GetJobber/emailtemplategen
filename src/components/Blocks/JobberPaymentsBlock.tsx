@@ -68,11 +68,11 @@ export function JobberPaymentsBlock({ block, dispatch }: Props) {
               <span className="text-xs text-gray-500">{selectedRate.location}</span>
               <div className="text-right">
                 <div className="text-sm font-semibold" style={{ color: PAYMENTS_COLOR }}>
-                  {selectedRate.standardRate}
+                  {selectedRate.standardRate} <span className="text-xs font-normal text-gray-400">per transaction</span>
                 </div>
                 {selectedRate.tapToPayRate && (
                   <div className="text-xs text-gray-500 mt-0.5">
-                    Tap to Pay: <span className="font-medium" style={{ color: PAYMENTS_COLOR }}>{selectedRate.tapToPayRate}</span>
+                    Tap to Pay: <span className="font-medium" style={{ color: PAYMENTS_COLOR }}>{selectedRate.tapToPayRate}</span> <span className="text-gray-400">per transaction</span>
                   </div>
                 )}
               </div>
