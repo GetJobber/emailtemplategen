@@ -45,6 +45,7 @@ export interface PaymentRate {
   location: string;
   standardRate: string;
   tapToPayRate?: string;
+  achRate?: string;
 }
 
 export interface JobberPaymentsDefinition {

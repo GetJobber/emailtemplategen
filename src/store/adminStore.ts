@@ -44,7 +44,7 @@ export type AdminAction =
   | { type: 'DELETE_ADDON'; addonId: string }
   | { type: 'RESET_TO_STATE'; state: AdminState }
   | { type: 'UPDATE_PAYMENTS_DESCRIPTION'; description: string }
-  | { type: 'UPDATE_PAYMENTS_RATE'; rateId: string; field: 'location' | 'standardRate' | 'tapToPayRate'; value: string }
+  | { type: 'UPDATE_PAYMENTS_RATE'; rateId: string; field: 'location' | 'standardRate' | 'tapToPayRate' | 'achRate'; value: string }
   | { type: 'ADD_PAYMENTS_RATE' }
   | { type: 'REMOVE_PAYMENTS_RATE'; rateId: string }
   | { type: 'ADD_PAYMENTS_FEATURE'; label: string }
@@ -603,6 +603,15 @@ function migrateAdminState(raw: AdminState): AdminState {
   const migrated = { ...raw, plans, addons };
   if (!(migrated as any).jobberPayments) {
     return { ...migrated, jobberPayments: DEFAULT_JOBBER_PAYMENTS };
+  }
+  // Migrate: remove legacy 'rate-ach' entry and promote its value to achRate on rate-ca-us
+  const jp = (migrated as any).jobberPayments as JobberPaymentsDefinition;
+  const achEntry = jp.rates.find((r: any) => r.id === 'rate-ach');
+  if (achEntry) {
+    const migratedRates = jp.rates
+      .filter((r: any) => r.id !== 'rate-ach')
+      .map((r: any) => r.id === 'rate-ca-us' && !r.achRate ? { ...r, achRate: achEntry.standardRate } : r);
+    return { ...migrated, jobberPayments: { ...jp, rates: migratedRates } } as AdminState;
   }
   return migrated as AdminState;
 }

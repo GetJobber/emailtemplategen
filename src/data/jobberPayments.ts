@@ -8,16 +8,12 @@ export const JOBBER_PAYMENTS: JobberPaymentsDefinition = {
       location: 'Canada & US',
       standardRate: '2.9% + 30¢',
       tapToPayRate: '2.7% + 30¢',
+      achRate: '1%',
     },
     {
       id: 'rate-uk',
       location: 'UK',
       standardRate: '1.4% + 20p',
-    },
-    {
-      id: 'rate-ach',
-      location: 'ACH Rate (US Only)',
-      standardRate: '1%',
     },
   ],
   features: [
