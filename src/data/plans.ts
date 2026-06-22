@@ -229,10 +229,10 @@ export const PLANS: PlanDefinition[] = [
       { id: 'plus-1', label: 'Receptionist (included — $99/mo value)' },
       { id: 'plus-2', label: 'Pipeline (included — $49/mo value)' },
       { id: 'plus-3', label: 'Marketing Suite (included — $79/mo value)' },
-      { id: 'plus-4', label: 'White glove onboarding' },
       { id: 'plus-5', label: 'Premium Support (included — $99 value)' },
       { id: 'plus-6', label: 'API Tour with API Access' },
       { id: 'plus-7', label: 'Data Import (included — $499 value)' },
+      { id: 'plus-4', label: 'White glove onboarding' },
     ],
   },
 ];
