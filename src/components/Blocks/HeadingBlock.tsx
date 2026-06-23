@@ -53,32 +53,30 @@ export function HeadingBlock({ block, dispatch }: Props) {
 
   return (
     <div className="px-4 py-3">
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Heading</p>
-        {/* Alignment buttons */}
-        <div className="flex items-center gap-0.5">
-          <button
-            className={`${alignBtnBase} ${currentAlignment === 'left' ? alignBtnActive : alignBtnInactive}`}
-            onMouseDown={e => { e.preventDefault(); handleAlignmentClick('left'); }}
-            title="Align left"
-          >
-            <AlignLeftIcon />
-          </button>
-          <button
-            className={`${alignBtnBase} ${currentAlignment === 'center' ? alignBtnActive : alignBtnInactive}`}
-            onMouseDown={e => { e.preventDefault(); handleAlignmentClick('center'); }}
-            title="Align center"
-          >
-            <AlignCenterIcon />
-          </button>
-          <button
-            className={`${alignBtnBase} ${currentAlignment === 'right' ? alignBtnActive : alignBtnInactive}`}
-            onMouseDown={e => { e.preventDefault(); handleAlignmentClick('right'); }}
-            title="Align right"
-          >
-            <AlignRightIcon />
-          </button>
-        </div>
+      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Heading</p>
+      {/* Alignment toolbar */}
+      <div className="flex items-center gap-0.5 mb-2">
+        <button
+          className={`${alignBtnBase} ${currentAlignment === 'left' ? alignBtnActive : alignBtnInactive}`}
+          onMouseDown={e => { e.preventDefault(); handleAlignmentClick('left'); }}
+          title="Align left"
+        >
+          <AlignLeftIcon />
+        </button>
+        <button
+          className={`${alignBtnBase} ${currentAlignment === 'center' ? alignBtnActive : alignBtnInactive}`}
+          onMouseDown={e => { e.preventDefault(); handleAlignmentClick('center'); }}
+          title="Align center"
+        >
+          <AlignCenterIcon />
+        </button>
+        <button
+          className={`${alignBtnBase} ${currentAlignment === 'right' ? alignBtnActive : alignBtnInactive}`}
+          onMouseDown={e => { e.preventDefault(); handleAlignmentClick('right'); }}
+          title="Align right"
+        >
+          <AlignRightIcon />
+        </button>
       </div>
       <input
         type="text"
