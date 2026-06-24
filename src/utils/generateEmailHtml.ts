@@ -656,7 +656,10 @@ function renderOnboardingLinksBlock(block: OnboardingLinksBlock, def: Onboarding
   if (!content && !header) return '';
 
   const NAVY = '#1D2D44';
-  const processedContent = content ? processTextContent(content) : '';
+  const align = block.alignment ?? 'left';
+  // Content from contentEditable is already HTML; fall back to processTextContent for legacy plain text
+  const isHtml = /<[a-z][\s\S]*>/i.test(content);
+  const processedContent = content ? (isHtml ? content : processTextContent(content)) : '';
 
   return `
 <div style="${SECTION_STYLE}">
@@ -668,7 +671,7 @@ function renderOnboardingLinksBlock(block: OnboardingLinksBlock, def: Onboarding
     </tr>
     ${processedContent ? `
     <tr>
-      <td style="padding: 10px 14px 12px; font-size: 14px; color: #333; line-height: 1.7; white-space: pre-wrap;">${processedContent}</td>
+      <td style="padding: 10px 14px 12px; font-size: 14px; color: #333; line-height: 1.7; text-align: ${align};">${processedContent}</td>
     </tr>` : ''}
   </table>
 </div>`;
@@ -851,8 +854,14 @@ export function generateEmailText(state: AppState, plans: PlanDefinition[], addo
         const header = block.header.trim() || (def?.header ?? '');
         const content = block.content.trim();
         if (!header && !content) return '';
-        // Strip [text](url) → "text (url)" for plain text
-        const plainContent = content.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1 ($2)');
+        // Strip HTML tags for plain text output
+        const plainContent = content
+          .replace(/<br\s*\/?>/gi, '\n')
+          .replace(/<[^>]+>/g, '')
+          .replace(/&nbsp;/g, ' ')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>');
         return [header, plainContent].filter(Boolean).join('\n');
       }
     }

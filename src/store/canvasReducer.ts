@@ -31,7 +31,8 @@ export type CanvasAction =
   | { type: 'HIDE_ALL_FEATURES'; instanceId: string }
   | { type: 'SHOW_ALL_FEATURES'; instanceId: string; allFeatureIds: string[]; defaultKeyFeatureIds: string[] }
   | { type: 'SET_ONBOARDING_CONTENT'; instanceId: string; content: string }
-  | { type: 'SET_ONBOARDING_HEADER'; instanceId: string; header: string };
+  | { type: 'SET_ONBOARDING_HEADER'; instanceId: string; header: string }
+  | { type: 'SET_ONBOARDING_ALIGNMENT'; instanceId: string; alignment: 'left' | 'center' | 'right' };
 
 export const initialState: AppState = {
   header: { to: '', subject: '' },
@@ -344,6 +345,17 @@ export function canvasReducer(state: AppState, action: CanvasAction): AppState {
         blocks: state.blocks.map(b =>
           b.instanceId === action.instanceId && b.kind === 'onboarding'
             ? { ...b, header: action.header }
+            : b
+        ),
+      };
+    }
+
+    case 'SET_ONBOARDING_ALIGNMENT': {
+      return {
+        ...state,
+        blocks: state.blocks.map(b =>
+          b.instanceId === action.instanceId && b.kind === 'onboarding'
+            ? { ...b, alignment: action.alignment }
             : b
         ),
       };
