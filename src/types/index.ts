@@ -40,6 +40,8 @@ export interface AddonDefinition {
   learnMoreUrl?: string;
   tiers: AddonPriceTier[];
   features: PlanFeature[];
+  /** Feature IDs that should be marked as Key Features when a block is first created */
+  defaultKeyFeatureIds?: string[];
 }
 
 export interface PaymentRate {
@@ -58,7 +60,7 @@ export interface JobberPaymentsDefinition {
   defaultKeyFeatureIds?: string[];
 }
 
-export type BlockKind = 'plan' | 'addon' | 'signature' | 'text' | 'heading' | 'checkout' | 'compare' | 'payments';
+export type BlockKind = 'plan' | 'addon' | 'signature' | 'text' | 'heading' | 'checkout' | 'compare' | 'payments' | 'onboarding';
 
 export interface PromoConfig {
   type: 'percent' | 'dollar';
@@ -156,7 +158,29 @@ export interface JobberPaymentsBlock extends BaseBlock {
   keyFeatureIds: string[];
 }
 
-export type CanvasBlock = PlanBlock | AddonBlock | SignatureBlock | TextBlock | HeadingBlock | CheckoutLinkBlock | CompareBlock | JobberPaymentsBlock;
+export interface OnboardingPill {
+  id: string;
+  label: string;
+  /** Outlook text-expander snippet code, e.g. "!gssnip" */
+  insertText?: string;
+  /** Direct booking URL for link-based sessions */
+  linkUrl?: string;
+}
+
+export interface OnboardingLinksDefinition {
+  header: string;
+  pills: OnboardingPill[];
+}
+
+export interface OnboardingLinksBlock extends BaseBlock {
+  kind: 'onboarding';
+  /** Per-block editable header, defaults to the definition header */
+  header: string;
+  /** IDs of pills that are currently toggled on */
+  selectedPillIds: string[];
+}
+
+export type CanvasBlock = PlanBlock | AddonBlock | SignatureBlock | TextBlock | HeadingBlock | CheckoutLinkBlock | CompareBlock | JobberPaymentsBlock | OnboardingLinksBlock;
 
 export interface EmailHeader {
   to: string;

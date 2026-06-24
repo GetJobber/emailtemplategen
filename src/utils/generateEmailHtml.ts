@@ -1,4 +1,4 @@
-import type { AppState, CanvasBlock, PlanBlock, AddonBlock, TextBlock, HeadingBlock, CheckoutLinkBlock, CompareBlock, CompareSlot, PlanDefinition, AddonDefinition, JobberPaymentsBlock, JobberPaymentsDefinition } from '../types';
+import type { AppState, CanvasBlock, PlanBlock, AddonBlock, TextBlock, HeadingBlock, CheckoutLinkBlock, CompareBlock, CompareSlot, PlanDefinition, AddonDefinition, JobberPaymentsBlock, JobberPaymentsDefinition, OnboardingLinksBlock, OnboardingLinksDefinition } from '../types';
 import {
   applyPromo,
   formatCurrency,
@@ -650,7 +650,47 @@ function renderJobberPaymentsBlock(block: JobberPaymentsBlock, def: JobberPaymen
 </div>`;
 }
 
-function renderBlock(block: CanvasBlock, plans: PlanDefinition[], addons: AddonDefinition[], jobberPayments?: JobberPaymentsDefinition): string {
+function renderOnboardingLinksBlock(block: OnboardingLinksBlock, def: OnboardingLinksDefinition): string {
+  const selectedPills = def.pills.filter(p => block.selectedPillIds.includes(p.id));
+  if (selectedPills.length === 0) return '';
+
+  const header = block.header.trim() || def.header;
+  const NAVY = '#1D2D44';
+
+  const pillRows = selectedPills.map(pill => {
+    const label = escapeHtml(pill.label);
+    if (pill.linkUrl) {
+      const safe = safeUrl(pill.linkUrl);
+      if (safe) {
+        return `<tr><td style="padding: 4px 0;">&#8226; <a href="${escapeAttr(safe)}" target="_blank" style="color:${NAVY}; font-weight:600; text-decoration:underline;">${label}</a></td></tr>`;
+      }
+      return `<tr><td style="padding: 4px 0;">&#8226; <strong>${label}</strong></td></tr>`;
+    }
+    // Snippet-based: show label + code in monospace
+    const code = pill.insertText ? ` <code style="background:#f3f4f6; border-radius:3px; padding:1px 4px; font-size:12px; color:#374151;">${escapeHtml(pill.insertText)}</code>` : '';
+    return `<tr><td style="padding: 4px 0; color:#444;">&#8226; ${label}${code}</td></tr>`;
+  }).join('');
+
+  return `
+<div style="${SECTION_STYLE}">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border: 1px solid #e5e7eb; border-left: 4px solid ${NAVY}; border-radius: 4px;">
+    <tr>
+      <td style="padding: 10px 14px 8px; background-color: #f9fafb; border-bottom: 1px solid #f0f0f0;">
+        <strong style="font-size: 15px; color: ${NAVY};">${escapeHtml(header)}</strong>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 8px 14px 12px;">
+        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="font-size: 14px;">
+          ${pillRows}
+        </table>
+      </td>
+    </tr>
+  </table>
+</div>`;
+}
+
+function renderBlock(block: CanvasBlock, plans: PlanDefinition[], addons: AddonDefinition[], jobberPayments?: JobberPaymentsDefinition, onboardingLinks?: OnboardingLinksDefinition): string {
   switch (block.kind) {
     case 'text': return renderTextBlock(block);
     case 'heading': return renderHeadingBlock(block);
@@ -660,11 +700,12 @@ function renderBlock(block: CanvasBlock, plans: PlanDefinition[], addons: AddonD
     case 'checkout': return renderCheckoutLinkBlock(block);
     case 'compare': return renderCompareBlock(block, plans, addons);
     case 'payments': return jobberPayments ? renderJobberPaymentsBlock(block, jobberPayments) : '';
+    case 'onboarding': return onboardingLinks ? renderOnboardingLinksBlock(block, onboardingLinks) : '';
   }
 }
 
-export function generateEmailHtml(state: AppState, plans: PlanDefinition[], addons: AddonDefinition[], jobberPayments?: JobberPaymentsDefinition): string {
-  const body = state.blocks.map(b => renderBlock(b, plans, addons, jobberPayments)).join('\n');
+export function generateEmailHtml(state: AppState, plans: PlanDefinition[], addons: AddonDefinition[], jobberPayments?: JobberPaymentsDefinition, onboardingLinks?: OnboardingLinksDefinition): string {
+  const body = state.blocks.map(b => renderBlock(b, plans, addons, jobberPayments, onboardingLinks)).join('\n');
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"></head>
@@ -676,7 +717,7 @@ export function generateEmailHtml(state: AppState, plans: PlanDefinition[], addo
 </html>`;
 }
 
-export function generateEmailText(state: AppState, plans: PlanDefinition[], addons: AddonDefinition[], jobberPayments?: JobberPaymentsDefinition): string {
+export function generateEmailText(state: AppState, plans: PlanDefinition[], addons: AddonDefinition[], jobberPayments?: JobberPaymentsDefinition, onboardingLinks?: OnboardingLinksDefinition): string {
   return state.blocks.map(block => {
     switch (block.kind) {
       case 'text': {
@@ -820,6 +861,16 @@ export function generateEmailText(state: AppState, plans: PlanDefinition[], addo
           : '';
         const descriptionText = def.description + (def.learnMoreUrl ? ` Learn more: ${def.learnMoreUrl}` : '');
         return ['Jobber Payments', descriptionText, rateText, features].filter(Boolean).join('\n');
+      }
+      case 'onboarding': {
+        if (!onboardingLinks) return '';
+        const header = block.header.trim() || onboardingLinks.header;
+        const selectedPills = onboardingLinks.pills.filter(p => block.selectedPillIds.includes(p.id));
+        if (selectedPills.length === 0) return '';
+        const lines = selectedPills.map(p =>
+          p.linkUrl ? `  • ${p.label} — ${p.linkUrl}` : `  • ${p.label}${p.insertText ? ' — ' + p.insertText : ''}`
+        );
+        return [header, ...lines].join('\n');
       }
     }
   }).join('\n\n');

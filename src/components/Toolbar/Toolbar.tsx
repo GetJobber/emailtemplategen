@@ -13,7 +13,7 @@ interface Props {
 }
 
 export function Toolbar({ state, dispatch, onOpenAdmin }: Props) {
-  const { plans, addons, jobberPayments } = useAdminData();
+  const { plans, addons, jobberPayments, onboardingLinks } = useAdminData();
   const [copied, setCopied] = useState(false);
   const [copiedRich, setCopiedRich] = useState(false);
   const [gmailOpened, setGmailOpened] = useState(false);
@@ -23,8 +23,8 @@ export function Toolbar({ state, dispatch, onOpenAdmin }: Props) {
 
   async function handleOpenInGmail() {
     // Copy rich text to clipboard — user pastes into Gmail compose body
-    const html = generateEmailHtml(state, plans, addons, jobberPayments);
-    const plain = generateEmailText(state, plans, addons, jobberPayments);
+    const html = generateEmailHtml(state, plans, addons, jobberPayments, onboardingLinks);
+    const plain = generateEmailText(state, plans, addons, jobberPayments, onboardingLinks);
     await copyRichTextToClipboard(html, plain);
 
     // Open Gmail inbox — user clicks Compose and pastes
@@ -35,7 +35,7 @@ export function Toolbar({ state, dispatch, onOpenAdmin }: Props) {
   }
 
   function handleSavePDF() {
-    const html = generateEmailHtml(state, plans, addons, jobberPayments);
+    const html = generateEmailHtml(state, plans, addons, jobberPayments, onboardingLinks);
     const printStyles = `<style>
       * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
       @page { margin: 0; size: A4 portrait; }
@@ -51,15 +51,15 @@ export function Toolbar({ state, dispatch, onOpenAdmin }: Props) {
   }
 
   async function handleCopy() {
-    const html = generateEmailHtml(state, plans, addons, jobberPayments);
+    const html = generateEmailHtml(state, plans, addons, jobberPayments, onboardingLinks);
     await copyToClipboard(html);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
 
   async function handleCopyRich() {
-    const html = generateEmailHtml(state, plans, addons, jobberPayments);
-    const plain = generateEmailText(state, plans, addons, jobberPayments);
+    const html = generateEmailHtml(state, plans, addons, jobberPayments, onboardingLinks);
+    const plain = generateEmailText(state, plans, addons, jobberPayments, onboardingLinks);
     await copyRichTextToClipboard(html, plain);
     setCopiedRich(true);
     setTimeout(() => setCopiedRich(false), 2000);
@@ -195,7 +195,7 @@ export function Toolbar({ state, dispatch, onOpenAdmin }: Props) {
 
       {previewing && (
         <PreviewModal
-          html={generateEmailHtml(state, plans, addons, jobberPayments)}
+          html={generateEmailHtml(state, plans, addons, jobberPayments, onboardingLinks)}
           onClose={() => setPreviewing(false)}
         />
       )}

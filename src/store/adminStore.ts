@@ -2,7 +2,8 @@ import { useReducer, useState } from 'react';
 import { PLANS as DEFAULT_PLANS } from '../data/plans';
 import { ADDONS as DEFAULT_ADDONS } from '../data/addons';
 import { JOBBER_PAYMENTS as DEFAULT_JOBBER_PAYMENTS } from '../data/jobberPayments';
-import type { PlanDefinition, AddonDefinition, PriceTier, AddonPriceTier, PlanPricingOption, JobberPaymentsDefinition } from '../types';
+import { ONBOARDING_LINKS as DEFAULT_ONBOARDING_LINKS } from '../data/onboardingLinks';
+import type { PlanDefinition, AddonDefinition, PriceTier, AddonPriceTier, PlanPricingOption, JobberPaymentsDefinition, OnboardingLinksDefinition } from '../types';
 
 const STORAGE_KEY = 'jobber-email-builder-admin-v2';
 
@@ -10,6 +11,7 @@ export interface AdminState {
   plans: PlanDefinition[];
   addons: AddonDefinition[];
   jobberPayments: JobberPaymentsDefinition;
+  onboardingLinks: OnboardingLinksDefinition;
 }
 
 export type AdminAction =
@@ -52,7 +54,14 @@ export type AdminAction =
   | { type: 'UPDATE_PAYMENTS_FEATURE'; featureId: string; label: string }
   | { type: 'DELETE_PAYMENTS_FEATURE'; featureId: string }
   | { type: 'REORDER_PAYMENTS_FEATURES'; fromIndex: number; toIndex: number }
-  | { type: 'TOGGLE_PAYMENTS_DEFAULT_KEY_FEATURE'; featureId: string };
+  | { type: 'TOGGLE_PAYMENTS_DEFAULT_KEY_FEATURE'; featureId: string }
+  | { type: 'UPDATE_ONBOARDING_HEADER'; header: string }
+  | { type: 'ADD_ONBOARDING_PILL' }
+  | { type: 'DELETE_ONBOARDING_PILL'; pillId: string }
+  | { type: 'UPDATE_ONBOARDING_PILL_LABEL'; pillId: string; label: string }
+  | { type: 'UPDATE_ONBOARDING_PILL_INSERT_TEXT'; pillId: string; insertText: string }
+  | { type: 'UPDATE_ONBOARDING_PILL_LINK_URL'; pillId: string; linkUrl: string }
+  | { type: 'REORDER_ONBOARDING_PILLS'; fromIndex: number; toIndex: number };
 
 function adminReducer(state: AdminState, action: AdminAction): AdminState {
   switch (action.type) {
@@ -543,6 +552,75 @@ function adminReducer(state: AdminState, action: AdminAction): AdminState {
       };
     }
 
+    case 'UPDATE_ONBOARDING_HEADER':
+      return {
+        ...state,
+        onboardingLinks: { ...state.onboardingLinks, header: action.header },
+      };
+
+    case 'ADD_ONBOARDING_PILL': {
+      const newPillId = `ol-pill-${Date.now()}`;
+      return {
+        ...state,
+        onboardingLinks: {
+          ...state.onboardingLinks,
+          pills: [...state.onboardingLinks.pills, { id: newPillId, label: 'New session', insertText: '' }],
+        },
+      };
+    }
+
+    case 'DELETE_ONBOARDING_PILL':
+      return {
+        ...state,
+        onboardingLinks: {
+          ...state.onboardingLinks,
+          pills: state.onboardingLinks.pills.filter(p => p.id !== action.pillId),
+        },
+      };
+
+    case 'UPDATE_ONBOARDING_PILL_LABEL':
+      return {
+        ...state,
+        onboardingLinks: {
+          ...state.onboardingLinks,
+          pills: state.onboardingLinks.pills.map(p =>
+            p.id !== action.pillId ? p : { ...p, label: action.label }
+          ),
+        },
+      };
+
+    case 'UPDATE_ONBOARDING_PILL_INSERT_TEXT':
+      return {
+        ...state,
+        onboardingLinks: {
+          ...state.onboardingLinks,
+          pills: state.onboardingLinks.pills.map(p =>
+            p.id !== action.pillId ? p : { ...p, insertText: action.insertText, linkUrl: undefined }
+          ),
+        },
+      };
+
+    case 'UPDATE_ONBOARDING_PILL_LINK_URL':
+      return {
+        ...state,
+        onboardingLinks: {
+          ...state.onboardingLinks,
+          pills: state.onboardingLinks.pills.map(p =>
+            p.id !== action.pillId ? p : { ...p, linkUrl: action.linkUrl, insertText: undefined }
+          ),
+        },
+      };
+
+    case 'REORDER_ONBOARDING_PILLS': {
+      const pills = [...state.onboardingLinks.pills];
+      const [moved] = pills.splice(action.fromIndex, 1);
+      pills.splice(action.toIndex, 0, moved);
+      return {
+        ...state,
+        onboardingLinks: { ...state.onboardingLinks, pills },
+      };
+    }
+
     default:
       return state;
   }
@@ -609,18 +687,23 @@ function migrateAdminState(raw: AdminState): AdminState {
   });
   const migrated = { ...raw, plans, addons };
   if (!(migrated as any).jobberPayments) {
-    return { ...migrated, jobberPayments: DEFAULT_JOBBER_PAYMENTS };
+    return { ...migrated, jobberPayments: DEFAULT_JOBBER_PAYMENTS, onboardingLinks: DEFAULT_ONBOARDING_LINKS };
   }
   // Migrate: remove legacy 'rate-ach' entry and promote its value to achRate on rate-ca-us
   const jp = (migrated as any).jobberPayments as JobberPaymentsDefinition;
   const achEntry = jp.rates.find((r: any) => r.id === 'rate-ach');
+  let result = migrated as any;
   if (achEntry) {
     const migratedRates = jp.rates
       .filter((r: any) => r.id !== 'rate-ach')
       .map((r: any) => r.id === 'rate-ca-us' && !r.achRate ? { ...r, achRate: achEntry.standardRate } : r);
-    return { ...migrated, jobberPayments: { ...jp, rates: migratedRates } } as AdminState;
+    result = { ...result, jobberPayments: { ...jp, rates: migratedRates } };
   }
-  return migrated as AdminState;
+  // Migrate: add onboardingLinks if missing
+  if (!result.onboardingLinks) {
+    result = { ...result, onboardingLinks: DEFAULT_ONBOARDING_LINKS };
+  }
+  return result as AdminState;
 }
 
 function loadFromStorage(): AdminState {
@@ -628,7 +711,7 @@ function loadFromStorage(): AdminState {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return migrateAdminState(JSON.parse(raw) as AdminState);
   } catch {}
-  return { plans: DEFAULT_PLANS, addons: DEFAULT_ADDONS, jobberPayments: DEFAULT_JOBBER_PAYMENTS };
+  return { plans: DEFAULT_PLANS, addons: DEFAULT_ADDONS, jobberPayments: DEFAULT_JOBBER_PAYMENTS, onboardingLinks: DEFAULT_ONBOARDING_LINKS };
 }
 
 function persistToStorage(state: AdminState): void {
@@ -657,7 +740,7 @@ export function useAdminStore() {
   }
 
   function resetToDefaults() {
-    const defaults: AdminState = { plans: DEFAULT_PLANS, addons: DEFAULT_ADDONS, jobberPayments: DEFAULT_JOBBER_PAYMENTS };
+    const defaults: AdminState = { plans: DEFAULT_PLANS, addons: DEFAULT_ADDONS, jobberPayments: DEFAULT_JOBBER_PAYMENTS, onboardingLinks: DEFAULT_ONBOARDING_LINKS };
     adminDispatch({ type: 'RESET_TO_STATE', state: defaults });
     setSavedState(defaults);
     persistToStorage(defaults);

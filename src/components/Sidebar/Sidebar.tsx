@@ -16,7 +16,7 @@ function matches(query: string, ...fields: (string | undefined)[]): boolean {
 }
 
 export function Sidebar({ dispatch }: Props) {
-  const { plans, addons, jobberPayments } = useAdminData();
+  const { plans, addons, jobberPayments, onboardingLinks } = useAdminData();
   const [query, setQuery] = useState('');
   const q = query.trim();
 
@@ -66,6 +66,24 @@ export function Sidebar({ dispatch }: Props) {
       description="Large bold section header"
       blockFactory={() => ({ instanceId: generateId(), kind: 'heading', text: '', alignment: 'center' })}
       onAdd={() => addBlock({ instanceId: generateId(), kind: 'heading', text: '', alignment: 'center' })}
+    />,
+    <DraggableSidebarItem
+      key="onboarding"
+      id="onboarding"
+      label="Onboarding Links (AM/KAM)"
+      description="Training session booking links with pill toggles"
+      blockFactory={() => ({
+        instanceId: generateId(),
+        kind: 'onboarding',
+        header: onboardingLinks.header,
+        selectedPillIds: onboardingLinks.pills.map(p => p.id),
+      })}
+      onAdd={() => addBlock({
+        instanceId: generateId(),
+        kind: 'onboarding',
+        header: onboardingLinks.header,
+        selectedPillIds: onboardingLinks.pills.map(p => p.id),
+      })}
     />,
   ];
 
@@ -158,6 +176,7 @@ export function Sidebar({ dispatch }: Props) {
     { el: customizationItems[2], label: 'Free Text', desc: 'Add a custom paragraph or note' },
     { el: customizationItems[3], label: 'Greeting', desc: 'Personalised greeting' },
     { el: customizationItems[4], label: 'Heading', desc: 'Large bold section header' },
+    { el: customizationItems[5], label: 'Onboarding Links (AM/KAM)', desc: 'Training session booking links with pill toggles' },
   ];
 
   const filteredCustomization = q

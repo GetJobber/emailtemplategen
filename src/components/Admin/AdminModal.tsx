@@ -18,7 +18,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useAdminData } from '../../contexts/AdminDataContext';
 import type { AdminAction } from '../../store/adminStore';
-import type { PlanDefinition, AddonDefinition, PriceTier, PlanFeature, AddonPriceTier, PlanPricingOption, JobberPaymentsDefinition, PaymentRate } from '../../types';
+import type { PlanDefinition, AddonDefinition, PriceTier, PlanFeature, AddonPriceTier, PlanPricingOption, JobberPaymentsDefinition, PaymentRate, OnboardingLinksDefinition } from '../../types';
 import type { Dispatch } from 'react';
 
 interface Props {
@@ -1546,11 +1546,164 @@ function PaymentsTab({ def, dispatch }: PaymentsTabProps) {
   );
 }
 
+// ─── Onboarding Links tab ─────────────────────────────────────────────────────
+
+interface OnboardingLinksTabProps {
+  def: OnboardingLinksDefinition;
+  dispatch: Dispatch<AdminAction>;
+}
+
+function OnboardingLinksTab({ def, dispatch }: OnboardingLinksTabProps) {
+  const [addingPill, setAddingPill] = useState(false);
+  const [newPillLabel, setNewPillLabel] = useState('');
+
+  function submitPill() {
+    if (!newPillLabel.trim()) return;
+    dispatch({ type: 'ADD_ONBOARDING_PILL' });
+    setNewPillLabel('');
+    setAddingPill(false);
+  }
+
+  return (
+    <div className="max-w-2xl">
+      <p className="text-xs text-gray-400 mb-4">
+        Configure the default header and training session pills shown in Onboarding Links blocks. Each pill can use either a direct booking link or an Outlook text snippet code.
+      </p>
+
+      {/* Default header */}
+      <div className="mb-6">
+        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Default Section Header</label>
+        <input
+          type="text"
+          value={def.header}
+          onChange={e => dispatch({ type: 'UPDATE_ONBOARDING_HEADER', header: e.target.value })}
+          placeholder="e.g. Book training"
+          className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-jobber focus:border-transparent"
+        />
+        <p className="text-xs text-gray-400 mt-1">This is the default text shown above the training links in each block. Users can override it per block on the canvas.</p>
+      </div>
+
+      {/* Pills list */}
+      <div>
+        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-2">Training Session Pills</label>
+        <div className="space-y-3">
+          {def.pills.map((pill, index) => (
+            <div key={pill.id} className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="flex-1">
+                  <label className="text-[10px] text-gray-400 uppercase tracking-wide">Label</label>
+                  <input
+                    type="text"
+                    value={pill.label}
+                    onChange={e => dispatch({ type: 'UPDATE_ONBOARDING_PILL_LABEL', pillId: pill.id, label: e.target.value })}
+                    className="w-full text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-jobber mt-0.5"
+                    placeholder="Session name"
+                  />
+                </div>
+                <button
+                  onClick={() => dispatch({ type: 'DELETE_ONBOARDING_PILL', pillId: pill.id })}
+                  className="flex-shrink-0 text-red-300 hover:text-red-500 transition-colors mt-4"
+                  title="Delete pill"
+                >
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M2 2l10 10M12 2l-10 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
+                </button>
+              </div>
+
+              {/* Toggle: Link URL vs Insert Text */}
+              <div className="flex items-center gap-3 mb-2">
+                <label className="text-[10px] text-gray-400 uppercase tracking-wide">Type</label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      if (!pill.linkUrl) return; // already insert text mode
+                      dispatch({ type: 'UPDATE_ONBOARDING_PILL_INSERT_TEXT', pillId: pill.id, insertText: '' });
+                    }}
+                    className={`text-[10px] font-semibold px-2 py-0.5 rounded-full transition-colors ${
+                      !pill.linkUrl ? 'bg-jobber text-jobber-dark' : 'bg-gray-200 text-gray-500 hover:bg-gray-300'
+                    }`}
+                  >
+                    Snippet code
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (pill.linkUrl) return; // already link mode
+                      dispatch({ type: 'UPDATE_ONBOARDING_PILL_LINK_URL', pillId: pill.id, linkUrl: '' });
+                    }}
+                    className={`text-[10px] font-semibold px-2 py-0.5 rounded-full transition-colors ${
+                      pill.linkUrl !== undefined ? 'bg-jobber text-jobber-dark' : 'bg-gray-200 text-gray-500 hover:bg-gray-300'
+                    }`}
+                  >
+                    Booking URL
+                  </button>
+                </div>
+              </div>
+
+              {pill.linkUrl !== undefined ? (
+                <div>
+                  <label className="text-[10px] text-gray-400 uppercase tracking-wide">Booking URL</label>
+                  <input
+                    type="url"
+                    value={pill.linkUrl}
+                    onChange={e => dispatch({ type: 'UPDATE_ONBOARDING_PILL_LINK_URL', pillId: pill.id, linkUrl: e.target.value })}
+                    className="w-full text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-jobber mt-0.5"
+                    placeholder="https://..."
+                  />
+                  {pill.linkUrl && !pill.linkUrl.startsWith('http') && (
+                    <p className="text-[10px] text-red-500 mt-0.5">URL must start with https:// or http://</p>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <label className="text-[10px] text-gray-400 uppercase tracking-wide">Outlook Snippet Code</label>
+                  <input
+                    type="text"
+                    value={pill.insertText ?? ''}
+                    onChange={e => dispatch({ type: 'UPDATE_ONBOARDING_PILL_INSERT_TEXT', pillId: pill.id, insertText: e.target.value })}
+                    className="w-full text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-jobber mt-0.5 font-mono"
+                    placeholder="e.g. !gssnip"
+                  />
+                </div>
+              )}
+
+              <p className="text-[10px] text-gray-400 mt-1.5">Pill #{index + 1}</p>
+            </div>
+          ))}
+        </div>
+
+        {addingPill ? (
+          <div className="mt-3 flex items-center gap-1.5">
+            <input
+              // eslint-disable-next-line jsx-a11y/no-autofocus
+              autoFocus
+              value={newPillLabel}
+              onChange={e => setNewPillLabel(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') submitPill(); if (e.key === 'Escape') { setNewPillLabel(''); setAddingPill(false); } }}
+              placeholder="Session label…"
+              className="flex-1 text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-jobber"
+            />
+            <button onClick={submitPill} disabled={!newPillLabel.trim()} className="text-xs bg-jobber text-jobber-dark px-2 py-1 rounded disabled:opacity-40">Add</button>
+            <button onClick={() => { setNewPillLabel(''); setAddingPill(false); }} className="text-xs text-gray-400 hover:text-gray-600">✕</button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setAddingPill(true)}
+            className="mt-3 text-xs text-jobber hover:opacity-80 font-semibold flex items-center gap-1"
+          >
+            + Add training session
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main modal ───────────────────────────────────────────────────────────────
 
 export function AdminModal({ onClose }: Props) {
-  const [tab, setTab] = useState<'plans' | 'addons' | 'payments'>('plans');
-  const { plans, addons, jobberPayments, adminDispatch, isDirty, save, cancel, resetToDefaults } = useAdminData();
+  const [tab, setTab] = useState<'plans' | 'addons' | 'payments' | 'onboarding'>('plans');
+  const { plans, addons, jobberPayments, onboardingLinks, adminDispatch, isDirty, save, cancel, resetToDefaults } = useAdminData();
 
   function handleReset() {
     if (window.confirm('Reset all pricing and features to the original defaults? This cannot be undone.')) {
@@ -1615,7 +1768,7 @@ export function AdminModal({ onClose }: Props) {
 
         {/* Tabs */}
         <div className="flex border-b border-gray-200 px-6">
-          {(['plans', 'addons', 'payments'] as const).map(t => (
+          {(['plans', 'addons', 'payments', 'onboarding'] as const).map(t => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -1625,7 +1778,7 @@ export function AdminModal({ onClose }: Props) {
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
-              {t === 'plans' ? 'Plans' : t === 'addons' ? 'Add-ons' : 'Jobber Payments'}
+              {t === 'plans' ? 'Plans' : t === 'addons' ? 'Add-ons' : t === 'payments' ? 'Jobber Payments' : 'Onboarding Links'}
             </button>
           ))}
         </div>
@@ -1635,6 +1788,7 @@ export function AdminModal({ onClose }: Props) {
           {tab === 'plans' && <PlansTab plans={plans} dispatch={adminDispatch} />}
           {tab === 'addons' && <AddonsTab addons={addons} dispatch={adminDispatch} />}
           {tab === 'payments' && <PaymentsTab def={jobberPayments} dispatch={adminDispatch} />}
+          {tab === 'onboarding' && <OnboardingLinksTab def={onboardingLinks} dispatch={adminDispatch} />}
         </div>
       </div>
     </div>

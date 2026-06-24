@@ -12,6 +12,7 @@ import { HeadingBlock } from '../Blocks/HeadingBlock';
 import { CheckoutLinkBlock } from '../Blocks/CheckoutLinkBlock';
 import { CompareBlock } from '../Blocks/CompareBlock';
 import { JobberPaymentsBlock } from '../Blocks/JobberPaymentsBlock';
+import { OnboardingLinksBlock } from '../Blocks/OnboardingLinksBlock';
 
 interface Props {
   block: CanvasBlock;
@@ -41,6 +42,8 @@ function getBlockMeta(block: CanvasBlock, plans: PlanDefinition[], addons: Addon
       return { label: 'Compare', color: '#6b7280' };
     case 'payments':
       return { label: 'Jobber Payments', color: '#0891B2' };
+    case 'onboarding':
+      return { label: 'Onboarding Links', color: '#1D2D44' };
     case 'signature':
       return { label: 'Signature', color: '#6b7280' };
   }
@@ -56,6 +59,7 @@ function BlockContent({ block, dispatch }: Props) {
     case 'checkout': return <CheckoutLinkBlock block={block} dispatch={dispatch} />;
     case 'compare': return <CompareBlock block={block} dispatch={dispatch} />;
     case 'payments': return <JobberPaymentsBlock block={block} dispatch={dispatch} />;
+    case 'onboarding': return <OnboardingLinksBlock block={block} dispatch={dispatch} />;
   }
 }
 
