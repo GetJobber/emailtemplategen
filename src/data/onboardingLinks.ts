@@ -8,7 +8,7 @@ export const ONBOARDING_LINKS: OnboardingLinksDefinition = {
     { id: 'ol-1many-grow', label: '1:Many Grow', insertText: '!growsnip' },
     {
       id: 'ol-1on1-plus',
-      label: '1:1 Plus',
+      label: 'Plus One on One Training',
       linkUrl: 'https://jobber.chilipiper.com/round-robin/jobber-training-call-45-mins',
     },
     { id: 'ol-1many-mobile', label: '1:Many Mobile App Workshop', insertText: '!appsnip' },
