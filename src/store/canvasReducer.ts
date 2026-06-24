@@ -29,7 +29,9 @@ export type CanvasAction =
   | { type: 'EXPAND_ALL' }
   | { type: 'COLLAPSE_ALL_BUT_TEXT' }
   | { type: 'HIDE_ALL_FEATURES'; instanceId: string }
-  | { type: 'SHOW_ALL_FEATURES'; instanceId: string; allFeatureIds: string[]; defaultKeyFeatureIds: string[] };
+  | { type: 'SHOW_ALL_FEATURES'; instanceId: string; allFeatureIds: string[]; defaultKeyFeatureIds: string[] }
+  | { type: 'TOGGLE_ONBOARDING_PILL'; instanceId: string; pillId: string }
+  | { type: 'SET_ONBOARDING_HEADER'; instanceId: string; header: string };
 
 export const initialState: AppState = {
   header: { to: '', subject: '' },
@@ -324,6 +326,33 @@ export function canvasReducer(state: AppState, action: CanvasAction): AppState {
           collapsed: b.kind !== 'text' && b.kind !== 'heading',
         })),
       };
+
+    case 'TOGGLE_ONBOARDING_PILL': {
+      return {
+        ...state,
+        blocks: state.blocks.map(b => {
+          if (b.instanceId !== action.instanceId || b.kind !== 'onboarding') return b;
+          const has = b.selectedPillIds.includes(action.pillId);
+          return {
+            ...b,
+            selectedPillIds: has
+              ? b.selectedPillIds.filter(id => id !== action.pillId)
+              : [...b.selectedPillIds, action.pillId],
+          };
+        }),
+      };
+    }
+
+    case 'SET_ONBOARDING_HEADER': {
+      return {
+        ...state,
+        blocks: state.blocks.map(b =>
+          b.instanceId === action.instanceId && b.kind === 'onboarding'
+            ? { ...b, header: action.header }
+            : b
+        ),
+      };
+    }
 
     case 'RESET':
       return initialState;
