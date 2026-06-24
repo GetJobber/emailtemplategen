@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { isValidHttpUrl } from '../../utils/sanitize';
 import {
   DndContext,
@@ -1548,6 +1548,161 @@ function PaymentsTab({ def, dispatch }: PaymentsTabProps) {
 
 // ─── Onboarding Links tab ─────────────────────────────────────────────────────
 
+/** Mini rich-text editor for a pill's content field (snippet code or hyperlink). */
+interface PillContentEditorProps {
+  pillId: string;
+  value: string;
+  dispatch: Dispatch<AdminAction>;
+}
+
+function PillContentEditor({ pillId, value, dispatch }: PillContentEditorProps) {
+  const editorRef = useRef<HTMLDivElement>(null);
+  const isFocusedRef = useRef(false);
+  const savedRangeRef = useRef<Range | null>(null);
+  const [isFocused, setIsFocused] = useState(false);
+  const [isEmpty, setIsEmpty] = useState(!value);
+  const [showLinkForm, setShowLinkForm] = useState(false);
+  const [linkText, setLinkText] = useState('');
+  const [linkUrl, setLinkUrl] = useState('');
+
+  // Mount: set initial HTML
+  useEffect(() => {
+    if (editorRef.current) {
+      editorRef.current.innerHTML = value;
+      setIsEmpty(!value);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Sync external changes when not focused
+  useEffect(() => {
+    if (!isFocusedRef.current && editorRef.current && value !== editorRef.current.innerHTML) {
+      editorRef.current.innerHTML = value;
+      setIsEmpty(!value);
+    }
+  }, [value]);
+
+  function handleInput() {
+    const raw = editorRef.current?.innerHTML ?? '';
+    const html = raw.replace(/&nbsp;/g, ' ').replace(/ /g, ' ');
+    const effectivelyEmpty = html === '' || html === '<br>';
+    setIsEmpty(effectivelyEmpty);
+    dispatch({ type: 'UPDATE_ONBOARDING_PILL_CONTENT', pillId, content: effectivelyEmpty ? '' : html });
+  }
+
+  function handleLinkButtonMouseDown(e: React.MouseEvent) {
+    e.preventDefault();
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0 && editorRef.current?.contains(sel.anchorNode)) {
+      savedRangeRef.current = sel.getRangeAt(0).cloneRange();
+      const selectedText = sel.toString();
+      if (selectedText) setLinkText(selectedText);
+    }
+    setShowLinkForm(true);
+  }
+
+  function handleInsertLink() {
+    const text = linkText.trim();
+    const rawUrl = linkUrl.trim();
+    if (!text || !rawUrl) return;
+    const url = /^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`;
+    const linkHtml = `<a href="${url}" target="_blank" style="color:#1F9839;text-decoration:underline;">${text}</a>`;
+    editorRef.current?.focus();
+    const sel = window.getSelection();
+    if (sel && savedRangeRef.current) {
+      sel.removeAllRanges();
+      sel.addRange(savedRangeRef.current);
+    }
+    document.execCommand('insertHTML', false, linkHtml);
+    const html = editorRef.current?.innerHTML ?? '';
+    dispatch({ type: 'UPDATE_ONBOARDING_PILL_CONTENT', pillId, content: html });
+    setIsEmpty(!html);
+    setLinkText('');
+    setLinkUrl('');
+    setShowLinkForm(false);
+    savedRangeRef.current = null;
+  }
+
+  function handleCancelLink() {
+    setLinkText('');
+    setLinkUrl('');
+    setShowLinkForm(false);
+    savedRangeRef.current = null;
+  }
+
+  return (
+    <div>
+      {/* Micro toolbar */}
+      <div className="flex items-center gap-1 mb-1">
+        <button
+          onMouseDown={handleLinkButtonMouseDown}
+          className="flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded border border-gray-200 text-gray-500 bg-white hover:bg-gray-50 hover:border-gray-300 transition-colors"
+          title="Insert link"
+        >
+          <LinkIcon /> Insert Link
+        </button>
+      </div>
+
+      {/* ContentEditable */}
+      <div className="relative">
+        {isEmpty && !isFocused && (
+          <div className="absolute inset-0 px-2 py-1.5 text-[10px] text-gray-300 pointer-events-none">
+            Type a snippet code or insert a link…
+          </div>
+        )}
+        <div
+          ref={editorRef}
+          contentEditable
+          suppressContentEditableWarning
+          className="rich-editor w-full text-xs text-gray-800 border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-jobber min-h-[28px]"
+          onInput={handleInput}
+          onFocus={() => { isFocusedRef.current = true; setIsFocused(true); }}
+          onBlur={() => { isFocusedRef.current = false; setIsFocused(false); }}
+        />
+      </div>
+
+      {/* Link form */}
+      {showLinkForm && (
+        <div className="mt-1.5 bg-white border border-gray-200 rounded-lg p-2 shadow-sm space-y-1.5">
+          <p className="text-[10px] font-semibold text-gray-600 flex items-center gap-1"><LinkIcon /> Insert Link</p>
+          <input
+            type="text"
+            placeholder="Display text"
+            value={linkText}
+            onChange={e => setLinkText(e.target.value)}
+            className="w-full text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-jobber"
+            // eslint-disable-next-line jsx-a11y/no-autofocus
+            autoFocus
+          />
+          <input
+            type="url"
+            placeholder="https://..."
+            value={linkUrl}
+            onChange={e => setLinkUrl(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') handleInsertLink(); }}
+            className="w-full text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-jobber"
+          />
+          <div className="flex gap-1.5 pt-0.5">
+            <button
+              onClick={handleInsertLink}
+              disabled={!linkText.trim() || !linkUrl.trim()}
+              className="px-2 py-1 text-[10px] font-semibold bg-jobber text-jobber-dark rounded hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Insert
+            </button>
+            <button
+              onClick={handleCancelLink}
+              className="px-2 py-1 text-[10px] text-gray-500 hover:text-gray-700 rounded hover:bg-gray-100"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface OnboardingLinksTabProps {
   def: OnboardingLinksDefinition;
   dispatch: Dispatch<AdminAction>;
@@ -1567,7 +1722,7 @@ function OnboardingLinksTab({ def, dispatch }: OnboardingLinksTabProps) {
   return (
     <div className="max-w-2xl">
       <p className="text-xs text-gray-400 mb-4">
-        Configure the default header and training session pills shown in Onboarding Links blocks. Each pill can use either a direct booking link or an Outlook text snippet code.
+        Configure the default header and training session pills shown in Onboarding Links blocks. Each pill inserts its bold label followed by whatever content you set here — type a snippet code or use Insert Link to add a hyperlink.
       </p>
 
       {/* Default header */}
@@ -1611,63 +1766,17 @@ function OnboardingLinksTab({ def, dispatch }: OnboardingLinksTabProps) {
                 </button>
               </div>
 
-              {/* Toggle: Link URL vs Insert Text */}
-              <div className="flex items-center gap-3 mb-2">
-                <label className="text-[10px] text-gray-400 uppercase tracking-wide">Type</label>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      if (!pill.linkUrl) return; // already insert text mode
-                      dispatch({ type: 'UPDATE_ONBOARDING_PILL_INSERT_TEXT', pillId: pill.id, insertText: '' });
-                    }}
-                    className={`text-[10px] font-semibold px-2 py-0.5 rounded-full transition-colors ${
-                      !pill.linkUrl ? 'bg-jobber text-jobber-dark' : 'bg-gray-200 text-gray-500 hover:bg-gray-300'
-                    }`}
-                  >
-                    Snippet code
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (pill.linkUrl) return; // already link mode
-                      dispatch({ type: 'UPDATE_ONBOARDING_PILL_LINK_URL', pillId: pill.id, linkUrl: '' });
-                    }}
-                    className={`text-[10px] font-semibold px-2 py-0.5 rounded-full transition-colors ${
-                      pill.linkUrl !== undefined ? 'bg-jobber text-jobber-dark' : 'bg-gray-200 text-gray-500 hover:bg-gray-300'
-                    }`}
-                  >
-                    Booking URL
-                  </button>
-                </div>
+              {/* Content: snippet code or hyperlink via mini rich-text editor */}
+              <div>
+                <label className="text-[10px] text-gray-400 uppercase tracking-wide block mb-0.5">Content</label>
+                <PillContentEditor
+                  pillId={pill.id}
+                  value={pill.content}
+                  dispatch={dispatch}
+                />
               </div>
 
-              {pill.linkUrl !== undefined ? (
-                <div>
-                  <label className="text-[10px] text-gray-400 uppercase tracking-wide">Booking URL</label>
-                  <input
-                    type="url"
-                    value={pill.linkUrl}
-                    onChange={e => dispatch({ type: 'UPDATE_ONBOARDING_PILL_LINK_URL', pillId: pill.id, linkUrl: e.target.value })}
-                    className="w-full text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-jobber mt-0.5"
-                    placeholder="https://..."
-                  />
-                  {pill.linkUrl && !pill.linkUrl.startsWith('http') && (
-                    <p className="text-[10px] text-red-500 mt-0.5">URL must start with https:// or http://</p>
-                  )}
-                </div>
-              ) : (
-                <div>
-                  <label className="text-[10px] text-gray-400 uppercase tracking-wide">Snippet Code</label>
-                  <input
-                    type="text"
-                    value={pill.insertText ?? ''}
-                    onChange={e => dispatch({ type: 'UPDATE_ONBOARDING_PILL_INSERT_TEXT', pillId: pill.id, insertText: e.target.value })}
-                    className="w-full text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-jobber mt-0.5 font-mono"
-                    placeholder="e.g. !gssnip"
-                  />
-                </div>
-              )}
-
-              <p className="text-[10px] text-gray-400 mt-1.5">Pill #{index + 1}</p>
+              <p className="text-[10px] text-gray-400 mt-2">Pill #{index + 1}</p>
             </div>
           ))}
         </div>

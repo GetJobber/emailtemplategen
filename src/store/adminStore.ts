@@ -59,8 +59,7 @@ export type AdminAction =
   | { type: 'ADD_ONBOARDING_PILL' }
   | { type: 'DELETE_ONBOARDING_PILL'; pillId: string }
   | { type: 'UPDATE_ONBOARDING_PILL_LABEL'; pillId: string; label: string }
-  | { type: 'UPDATE_ONBOARDING_PILL_INSERT_TEXT'; pillId: string; insertText: string }
-  | { type: 'UPDATE_ONBOARDING_PILL_LINK_URL'; pillId: string; linkUrl: string }
+  | { type: 'UPDATE_ONBOARDING_PILL_CONTENT'; pillId: string; content: string }
   | { type: 'REORDER_ONBOARDING_PILLS'; fromIndex: number; toIndex: number };
 
 function adminReducer(state: AdminState, action: AdminAction): AdminState {
@@ -564,7 +563,7 @@ function adminReducer(state: AdminState, action: AdminAction): AdminState {
         ...state,
         onboardingLinks: {
           ...state.onboardingLinks,
-          pills: [...state.onboardingLinks.pills, { id: newPillId, label: 'New session', insertText: '' }],
+          pills: [...state.onboardingLinks.pills, { id: newPillId, label: 'New session', content: '' }],
         },
       };
     }
@@ -589,24 +588,13 @@ function adminReducer(state: AdminState, action: AdminAction): AdminState {
         },
       };
 
-    case 'UPDATE_ONBOARDING_PILL_INSERT_TEXT':
+    case 'UPDATE_ONBOARDING_PILL_CONTENT':
       return {
         ...state,
         onboardingLinks: {
           ...state.onboardingLinks,
           pills: state.onboardingLinks.pills.map(p =>
-            p.id !== action.pillId ? p : { ...p, insertText: action.insertText, linkUrl: undefined }
-          ),
-        },
-      };
-
-    case 'UPDATE_ONBOARDING_PILL_LINK_URL':
-      return {
-        ...state,
-        onboardingLinks: {
-          ...state.onboardingLinks,
-          pills: state.onboardingLinks.pills.map(p =>
-            p.id !== action.pillId ? p : { ...p, linkUrl: action.linkUrl, insertText: undefined }
+            p.id !== action.pillId ? p : { ...p, content: action.content }
           ),
         },
       };
@@ -702,6 +690,22 @@ function migrateAdminState(raw: AdminState): AdminState {
   // Migrate: add onboardingLinks if missing
   if (!result.onboardingLinks) {
     result = { ...result, onboardingLinks: DEFAULT_ONBOARDING_LINKS };
+  }
+  // Migrate: convert old pill format (insertText/linkUrl) → content
+  if (result.onboardingLinks?.pills?.some((p: any) => p.content === undefined)) {
+    result = {
+      ...result,
+      onboardingLinks: {
+        ...result.onboardingLinks,
+        pills: result.onboardingLinks.pills.map((p: any) => {
+          if (p.content !== undefined) return p;
+          if (p.linkUrl) {
+            return { id: p.id, label: p.label, content: `<a href="${p.linkUrl}" target="_blank" style="color:#1F9839;text-decoration:underline;">${p.label}</a>` };
+          }
+          return { id: p.id, label: p.label, content: p.insertText ?? '' };
+        }),
+      },
+    };
   }
   return result as AdminState;
 }
