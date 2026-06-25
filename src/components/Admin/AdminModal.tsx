@@ -136,6 +136,7 @@ function SortableFeatureRow({ planId, feature, isDefaultKey, dispatch }: Sortabl
   const inputRef = useRef<HTMLInputElement>(null);
   const savedSelRef = useRef({ start: 0, end: 0 });
   const linkFormOpenRef = useRef(false);
+  const linkDefaultTextRef = useRef('');
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: `feat:${planId}:${feature.id}`,
@@ -163,12 +164,13 @@ function SortableFeatureRow({ planId, feature, isDefaultKey, dispatch }: Sortabl
       setLabel(feature.label);
       setEditing(true);
       savedSelRef.current = { start: feature.label.length, end: feature.label.length };
+      linkDefaultTextRef.current = '';
     } else {
       const el = inputRef.current;
-      savedSelRef.current = {
-        start: el?.selectionStart ?? label.length,
-        end: el?.selectionEnd ?? label.length,
-      };
+      const start = el?.selectionStart ?? label.length;
+      const end = el?.selectionEnd ?? label.length;
+      savedSelRef.current = { start, end };
+      linkDefaultTextRef.current = start !== end ? label.slice(start, end) : '';
     }
     linkFormOpenRef.current = true;
     setShowLinkForm(true);
@@ -265,7 +267,7 @@ function SortableFeatureRow({ planId, feature, isDefaultKey, dispatch }: Sortabl
 
       {showLinkForm && (
         <div className="px-1 pb-1.5">
-          <InsertLinkInline onInsert={handleInsertLink} onClose={handleCancelLink} />
+          <InsertLinkInline onInsert={handleInsertLink} onClose={handleCancelLink} defaultText={linkDefaultTextRef.current} />
         </div>
       )}
     </div>
@@ -786,6 +788,7 @@ function SortableAddonFeatureRow({ addonId, feature, dispatch }: SortableAddonFe
   const inputRef = useRef<HTMLInputElement>(null);
   const savedSelRef = useRef({ start: 0, end: 0 });
   const linkFormOpenRef = useRef(false);
+  const linkDefaultTextRef = useRef('');
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: `addonfeat:${addonId}:${feature.id}`,
@@ -813,12 +816,13 @@ function SortableAddonFeatureRow({ addonId, feature, dispatch }: SortableAddonFe
       setLabel(feature.label);
       setEditing(true);
       savedSelRef.current = { start: feature.label.length, end: feature.label.length };
+      linkDefaultTextRef.current = '';
     } else {
       const el = inputRef.current;
-      savedSelRef.current = {
-        start: el?.selectionStart ?? label.length,
-        end: el?.selectionEnd ?? label.length,
-      };
+      const start = el?.selectionStart ?? label.length;
+      const end = el?.selectionEnd ?? label.length;
+      savedSelRef.current = { start, end };
+      linkDefaultTextRef.current = start !== end ? label.slice(start, end) : '';
     }
     linkFormOpenRef.current = true;
     setShowLinkForm(true);
@@ -905,7 +909,7 @@ function SortableAddonFeatureRow({ addonId, feature, dispatch }: SortableAddonFe
 
       {showLinkForm && (
         <div className="px-1 pb-1.5">
-          <InsertLinkInline onInsert={handleInsertLink} onClose={handleCancelLink} />
+          <InsertLinkInline onInsert={handleInsertLink} onClose={handleCancelLink} defaultText={linkDefaultTextRef.current} />
         </div>
       )}
     </div>
