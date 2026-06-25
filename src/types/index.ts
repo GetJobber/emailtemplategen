@@ -161,10 +161,9 @@ export interface JobberPaymentsBlock extends BaseBlock {
 export interface OnboardingPill {
   id: string;
   label: string;
-  /** Outlook text-expander snippet code, e.g. "!gssnip" */
-  insertText?: string;
-  /** Direct booking URL for link-based sessions */
-  linkUrl?: string;
+  /** Rich HTML inserted into the editor when the pill is clicked.
+   *  Can be plain text (e.g. "!gssnip") or an <a> tag built via Insert Link. */
+  content: string;
 }
 
 export interface OnboardingLinksDefinition {

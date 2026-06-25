@@ -148,12 +148,11 @@ export function OnboardingLinksBlock({ block, dispatch }: Props) {
     e.preventDefault();
     editorRef.current?.focus();
 
-    if (pill.linkUrl) {
-      const linkHtml = `<a href="${pill.linkUrl}" target="_blank" style="color:#1F9839;text-decoration:underline;">${pill.label}</a>`;
-      document.execCommand('insertHTML', false, linkHtml);
-    } else if (pill.insertText) {
-      document.execCommand('insertText', false, pill.insertText);
-    }
+    // Insert bold label on its own line, followed by the pill's content
+    const boldLabel = `<strong>${pill.label}</strong>`;
+    const content = pill.content ?? '';
+    const html = content ? `${boldLabel}<br>${content}` : boldLabel;
+    document.execCommand('insertHTML', false, html);
 
     syncContent();
   }
@@ -235,7 +234,7 @@ export function OnboardingLinksBlock({ block, dispatch }: Props) {
                 onMouseDown={e => handlePillMouseDown(e, pill)}
                 className="px-3 py-1 rounded-full text-xs font-semibold border transition-colors hover:opacity-80"
                 style={{ backgroundColor: '#fff', borderColor: ONBOARDING_COLOR + '88', color: ONBOARDING_COLOR }}
-                title={pill.linkUrl ? `Insert link: ${pill.linkUrl}` : `Insert snippet: ${pill.insertText}`}
+                title={`Insert: ${pill.label}`}
               >
                 {pill.label}
               </button>
@@ -306,7 +305,7 @@ export function OnboardingLinksBlock({ block, dispatch }: Props) {
               ref={editorRef}
               contentEditable
               suppressContentEditableWarning
-              className="w-full text-sm text-gray-800 border border-gray-200 rounded p-2 focus:outline-none focus:ring-2 focus:ring-jobber min-h-[80px]"
+              className="rich-editor w-full text-sm text-gray-800 border border-gray-200 rounded p-2 focus:outline-none focus:ring-2 focus:ring-jobber min-h-[80px]"
               style={{ textAlign: currentAlignment }}
               onInput={handleInput}
               onFocus={handleFocus}
