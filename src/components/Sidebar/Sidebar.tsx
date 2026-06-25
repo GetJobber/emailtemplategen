@@ -15,9 +15,19 @@ function matches(query: string, ...fields: (string | undefined)[]): boolean {
   return fields.some(f => f?.toLowerCase().includes(q));
 }
 
+type SectionId = 'customization' | 'plans' | 'addons' | 'payments' | 'onboarding' | 'other';
+
+const ALL_OPEN: Record<SectionId, boolean> = { customization: true, plans: true, addons: true, payments: true, onboarding: true, other: true };
+const ALL_CLOSED: Record<SectionId, boolean> = { customization: false, plans: false, addons: false, payments: false, onboarding: false, other: false };
+
 export function Sidebar({ dispatch }: Props) {
   const { plans, addons, jobberPayments, onboardingLinks } = useAdminData();
   const [query, setQuery] = useState('');
+  const [sectionsOpen, setSectionsOpen] = useState<Record<SectionId, boolean>>(ALL_OPEN);
+
+  function toggleSection(id: SectionId) {
+    setSectionsOpen(s => ({ ...s, [id]: !s[id] }));
+  }
   const q = query.trim();
 
   function addBlock(block: CanvasBlock) {
@@ -238,13 +248,13 @@ export function Sidebar({ dispatch }: Props) {
         {/* Collapse / Expand all */}
         <div className="flex gap-2 mt-2.5">
           <button
-            onClick={() => dispatch({ type: 'COLLAPSE_ALL' })}
+            onClick={() => setSectionsOpen(ALL_CLOSED)}
             className="flex-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 border border-gray-200 rounded-lg py-1 transition-colors"
           >
             Collapse all
           </button>
           <button
-            onClick={() => dispatch({ type: 'EXPAND_ALL' })}
+            onClick={() => setSectionsOpen(ALL_OPEN)}
             className="flex-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 border border-gray-200 rounded-lg py-1 transition-colors"
           >
             Expand all
@@ -258,32 +268,32 @@ export function Sidebar({ dispatch }: Props) {
         ) : (
           <>
             {filteredCustomization.length > 0 && (
-              <SidebarSection key={`customization-${!!q}`} title="Customization Blocks">
+              <SidebarSection title="Customization Blocks" open={sectionsOpen.customization} onToggle={() => toggleSection('customization')}>
                 {filteredCustomization}
               </SidebarSection>
             )}
             {filteredPlans.length > 0 && (
-              <SidebarSection key={`plans-${!!q}`} title="Plans">
+              <SidebarSection title="Plans" open={sectionsOpen.plans} onToggle={() => toggleSection('plans')}>
                 {filteredPlans}
               </SidebarSection>
             )}
             {filteredAddons.length > 0 && (
-              <SidebarSection key={`addons-${!!q}`} title="Add-ons">
+              <SidebarSection title="Add-ons" open={sectionsOpen.addons} onToggle={() => toggleSection('addons')}>
                 {filteredAddons}
               </SidebarSection>
             )}
             {filteredPayments.length > 0 && (
-              <SidebarSection key={`payments-${!!q}`} title="Jobber Payments">
+              <SidebarSection title="Jobber Payments" open={sectionsOpen.payments} onToggle={() => toggleSection('payments')}>
                 {filteredPayments}
               </SidebarSection>
             )}
             {filteredOnboarding.length > 0 && (
-              <SidebarSection key={`onboarding-${!!q}`} title="Onboarding Links">
+              <SidebarSection title="Onboarding Links" open={sectionsOpen.onboarding} onToggle={() => toggleSection('onboarding')}>
                 {filteredOnboarding}
               </SidebarSection>
             )}
             {!q && (
-              <SidebarSection title="Other">
+              <SidebarSection title="Other" open={sectionsOpen.other} onToggle={() => toggleSection('other')}>
                 <></>
               </SidebarSection>
             )}
